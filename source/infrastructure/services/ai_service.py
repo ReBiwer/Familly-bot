@@ -9,7 +9,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages.base import BaseMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import BaseCheckpointSaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
@@ -55,7 +55,7 @@ class AIService(IAIService):
         self.llm = ChatOpenAI(
             model=app_settings.OPENAI_MODEL,
             temperature=0.7,
-            api_key=app_settings.OPENROUTER_API_KEY,
+            api_key=app_settings.OPENROUTER_API_KEY,  # pyright: ignore[reportArgumentType]
             base_url=app_settings.OPENROUTER_BASE_URL,
         )
         self._workflow = self._build_workflow(checkpointer)
@@ -73,7 +73,7 @@ class AIService(IAIService):
 
     def _build_workflow(self, checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
         workflow = StateGraph(AIServiceState)  # type: ignore
-        workflow.add_node("fake_node", lambda x: x)
+        workflow.add_node("fake_node", lambda x: x)  # type: ignore
         workflow.add_node("generate_response", self._generate_response_node)
         workflow.add_node("regenerate_response", self._regenerate_response_node)
 
