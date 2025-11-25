@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from source.infrastructure.di import init_di_container
+from source.infrastructure.monitoring import setup_monitoring
 from source.infrastructure.settings.app import app_settings
 from source.presentation.api.ai import router as ai_router
 from source.presentation.api.auth import router as auth_router
@@ -22,7 +23,7 @@ def create_web_app() -> FastAPI:
         description="Clean Architecture implementation for AI HR",
         lifespan=lifespan,
     )
-
+    setup_monitoring(app)
     app.include_router(auth_router)
     app.include_router(ai_router)
     init_di_container(app)

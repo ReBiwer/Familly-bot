@@ -1,4 +1,4 @@
-version: "3.9"
+# version: "3.9"
 services:
 
   postgres:
@@ -42,6 +42,39 @@ services:
     networks:
       - my_networks
 
+  redis-exporter:
+    image: oliver006/redis_exporter
+    container_name: redis_exporter
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    ports:
+      - 9121:9121
+    depends_on:
+      - redis
+    networks:
+      - my_networks
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres_exporter
+    env_file:
+      - .env
+    environment:
+      # Используем переменные окружения libpq для надежного подключения
+      # Это позволяет избежать проблем с экранированием паролей в строке подключения
+      - DATA_SOURCE_URI=postgres:5432/postgres?sslmode=disable
+      - PGUSER=${DB_USER}
+      - PGPASSWORD=${DB_PASS}
+      - PGDATABASE=${DB_NAME}
+      - PGHOST=postgres
+      - PGPORT=5432
+    ports:
+      - 9187:9187
+    depends_on:
+      - postgres
+    networks:
+      - my_networks
+
   web:
     build:
       context: .
@@ -76,9 +109,35 @@ services:
     networks:
       - my_networks
 
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus_data/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - my_networks
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - my_networks
+
+
 volumes:
   redis_data:
   initdb:
+  prometheusdata:
+  grafana_data:
 
 networks:
   my_networks:

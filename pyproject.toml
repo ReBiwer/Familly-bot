@@ -17,6 +17,7 @@ dependencies = [
     "langchain-openai>=0.3.32",
     "langgraph>=0.6.6",
     "langgraph-checkpoint-redis>=0.1.1",
+    "prometheus-fastapi-instrumentator>=7.1.0",
     "pytest>=8.4.1",
     "pytest-asyncio>=0.24.0",
     "pytest-mock>=3.15.0",
