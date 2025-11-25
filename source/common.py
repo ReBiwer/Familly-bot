@@ -5,7 +5,7 @@ from pathlib import Path
 PATH_LOGS = f"{Path(__file__).resolve().parent.parent}/logs"
 
 
-def setup_logging(root_log_level: int = logging.INFO, log_dir: str = PATH_LOGS):
+def setup_logging(root_log_level: str | int = logging.INFO, log_dir: str = PATH_LOGS):
     Path(log_dir).mkdir(parents=True, exist_ok=True)
 
     config = {
