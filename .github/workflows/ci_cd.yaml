@@ -84,7 +84,7 @@ jobs:
           context: .
           push: true
           target: bot
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:bot-latest
+          tags: ${{ steps.repo_slug.outputs.result }}:bot-latest
 
   deploy:
     name: 🚀 Deploy to Server
