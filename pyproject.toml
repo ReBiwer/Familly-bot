@@ -24,6 +24,7 @@ dependencies = [
     "pytest-playwright-asyncio>=0.7.1",
     "python-jose[cryptography]>=3.5.0",
     "redis>=6.4.0",
+    "ruff>=0.13.1",
     "uvicorn>=0.32.0",
 ]
 
