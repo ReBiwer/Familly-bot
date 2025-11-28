@@ -142,8 +142,6 @@ jobs:
             OPENAI_MODEL="${{ vars.OPENAI_MODEL }}"
             OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}"
             EOF
-            # Ограничиваем права доступа к .env файлу
-            chmod 600 .env
 
 
       - name: Deploy using SSH
