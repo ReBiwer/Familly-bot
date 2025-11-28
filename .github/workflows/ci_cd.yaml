@@ -97,6 +97,20 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
+      - name: Create env file for compose
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd ~/AI-HR/
+            cat <<'EOF' > .env
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASS=${{ secrets.DB_PASS }}
+            EOF
+
       - name: Deploy using SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -109,8 +123,6 @@ jobs:
             set -e
 
             echo "Deploying to production..."
-
-            echo ${{ env.DB_NAME }}
 
             # Go to project directory (adjust path)
             cd ~/AI-HR/
