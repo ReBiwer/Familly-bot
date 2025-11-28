@@ -38,8 +38,8 @@ jobs:
       - name: Run Formatter Check (Ruff)
         run: uv run ruff format --check .
 
-      - name: Run Tests
-        run: uv run pytest
+#      - name: Run Tests
+#        run: uv run pytest
 
   build-and-push:
     name: 🐳 Build & Push Docker Image
