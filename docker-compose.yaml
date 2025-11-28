@@ -26,8 +26,6 @@ services:
 
   redis:
     image: redis:latest
-    env_file:
-      - .env
     container_name: redis_container
     ports:
       - '6379:6379'
@@ -57,8 +55,8 @@ services:
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter
     container_name: postgres_exporter
-    env_file:
-      - .env
+#    env_file:
+#      - .env
     environment:
       # Используем переменные окружения libpq для надежного подключения
       # Это позволяет избежать проблем с экранированием паролей в строке подключения
