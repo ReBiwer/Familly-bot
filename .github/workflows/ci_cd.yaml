@@ -62,13 +62,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Sanitize image slug
+        id: repo_slug
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            return `ghcr.io/${{ github.repository }}`.toLowerCase()
+
       - name: Build and push Web Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           target: web
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:web-latest
+          tags: ${{ steps.repo_slug.outputs.result }}:web-latest
 
       - name: Build and push Bot Docker image
         uses: docker/build-push-action@v5
