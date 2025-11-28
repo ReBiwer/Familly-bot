@@ -107,7 +107,7 @@ jobs:
             echo "Deploying to production..."
 
             # Go to project directory (adjust path)
-            cd /opt/ai-hr/
+            cd ~/AI-HR/
 
             # Pull latest code (if you use git on server) or just update docker-compose
             # git pull origin main
