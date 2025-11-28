@@ -141,10 +141,10 @@ jobs:
             # OpenAI/OpenRouter
             OPENAI_MODEL="${{ vars.OPENAI_MODEL }}"
             OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}"
-
+            EOF
             # Ограничиваем права доступа к .env файлу
             chmod 600 .env
-            EOF
+
 
       - name: Deploy using SSH
         uses: appleboy/ssh-action@v1.0.3
