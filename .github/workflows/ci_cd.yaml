@@ -89,6 +89,10 @@ jobs:
   deploy:
     name: 🚀 Deploy to Server
     needs: build-and-push
+    env:
+      DB_NAME: ${{secrets.DB_NAME}}
+      DB_USER: ${{secrets.DB_USER}}
+      DB_PASS: ${{secrets.DB_PASS}}
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
