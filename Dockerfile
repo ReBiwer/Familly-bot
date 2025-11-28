@@ -53,18 +53,22 @@ WORKDIR /app
 # Переносим установленное приложение и виртуальное окружение из builder stage
 COPY --from=builder /app /app
 
+# Копируем скрипт entrypoint
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 ###############################################################################
 # Финальный образ для развёртывания веб-приложения (FastAPI + Gunicorn)
 ###############################################################################
 FROM runtime-base AS web
 
-ENTRYPOINT ["python", "-m", "source.main"]
-CMD ["--type-app", "web"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["python", "-m", "source.main", "--type-app", "web"]
 
 ###############################################################################
 # Финальный образ для Telegram-бота (aiogram)
 ###############################################################################
 FROM runtime-base AS bot
 
-ENTRYPOINT ["python", "-m", "source.main"]
-CMD ["--type-app", "telegram"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["python", "-m", "source.main", "--type-app", "telegram"]
