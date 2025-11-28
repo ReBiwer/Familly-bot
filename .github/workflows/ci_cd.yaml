@@ -110,6 +110,8 @@ jobs:
 
             echo "Deploying to production..."
 
+            echo ${{ env.DB_NAME }}
+
             # Go to project directory (adjust path)
             cd ~/AI-HR/
 
