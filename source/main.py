@@ -7,6 +7,7 @@ from source.infrastructure.monitoring import setup_monitoring
 from source.infrastructure.settings.app import app_settings
 from source.presentation.api.ai import router as ai_router
 from source.presentation.api.auth import router as auth_router
+from source.presentation.api.health import router as health_router
 from source.presentation.bot.create_bot import run_bot
 from source.presentation.wsgi import Application, get_app_options
 
@@ -26,6 +27,7 @@ def create_web_app() -> FastAPI:
     setup_monitoring(app)
     app.include_router(auth_router)
     app.include_router(ai_router)
+    app.include_router(health_router)
     init_di_container(app)
 
     return app
