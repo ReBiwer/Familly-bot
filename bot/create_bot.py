@@ -8,8 +8,9 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from src.infrastructure.di import init_di_container_bot
 from src.infrastructure.settings.app import app_settings
-from src.presentation.bot.middlewares import AuthMiddleware
-from src.presentation.bot.routers import main_router
+
+from bot.middlewares import AuthMiddleware
+from bot.routers import main_router
 
 logger = logging.getLogger(__name__)
 

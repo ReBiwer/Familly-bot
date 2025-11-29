@@ -8,7 +8,8 @@ from dishka import FromDishka
 from src.constants.keys import CallbackKeys, StorageKeys
 from src.constants.texts_message import ProfileMessages
 from src.domain.entities.user import UserEntity
-from src.presentation.bot.keyboards.inline import ResumeCallback, resumes_keyboard
+
+from bot.keyboards.inline import ResumeCallback, resumes_keyboard
 
 logger = logging.getLogger(__name__)
 

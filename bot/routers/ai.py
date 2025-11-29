@@ -15,7 +15,8 @@ from src.constants.texts_message import AIMessages
 from src.domain.entities.response import ResponseToVacancyEntity
 from src.domain.entities.resume import ResumeEntity
 from src.domain.entities.user import UserEntity
-from src.presentation.bot.keyboards.inline import send_or_regenerate_ai_response
+
+from bot.keyboards.inline import send_or_regenerate_ai_response
 
 logger = logging.getLogger(__name__)
 

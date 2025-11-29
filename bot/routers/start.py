@@ -11,7 +11,8 @@ from src.application.use_cases.bot.authorization import AuthUseCase
 from src.constants.keys import StorageKeys
 from src.constants.texts_message import StartMessages
 from src.domain.entities.user import UserEntity
-from src.presentation.bot.keyboards.inline import profile_keyboard
+
+from bot.keyboards.inline import profile_keyboard
 
 logger = logging.getLogger(__name__)
 

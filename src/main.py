@@ -1,13 +1,12 @@
 from contextlib import asynccontextmanager
 
+from bot.create_bot import run_bot
 from fastapi import FastAPI
 from src.infrastructure.di import init_di_container
 from src.infrastructure.monitoring import setup_monitoring
-from src.infrastructure.settings.app import app_settings
 from src.presentation.api.ai import router as ai_router
 from src.presentation.api.auth import router as auth_router
 from src.presentation.api.health import router as health_router
-from src.presentation.bot.create_bot import run_bot
 from src.presentation.wsgi import Application, get_app_options
 
 
