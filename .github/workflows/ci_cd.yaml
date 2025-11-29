@@ -104,11 +104,8 @@ jobs:
           script: |
             cd ~/AI-HR/
             cat <<'EOF' > .env
-
-            # Логирование
             LOG_LEVEL="${{ vars.LOG_LEVEL || 'INFO' }}"
 
-            # Bot настройки
             BOT_TOKEN="${{ secrets.BOT_TOKEN }}"
             BOT_USERNAME="${{ vars.BOT_USERNAME }}"
             WEBHOOK_PATH="${{ vars.WEBHOOK_PATH }}"
@@ -116,29 +113,24 @@ jobs:
             BOT_APP_HOST="bot"
             BOT_APP_PORT=8443
 
-            # Backend настройки
             BACKEND_HOST="0.0.0.0"
             BACKEND_PORT=8000
             JWT_SECRET="${{ secrets.JWT_SECRET }}"
 
-            # Database
             DB_USER="${{ secrets.DB_USER }}"
             DB_PASS="${{ secrets.DB_PASS }}"
             DB_HOST="${{ vars.DB_HOST }}"
             DB_NAME="${{ vars.DB_NAME }}"
 
-            # Redis
             REDIS_HOST="${{ vars.REDIS_HOST }}"
             REDIS_PORT=6379
             REDIS_DB_NUM=0
             REDIS_CHECKPOINT_NUM_DB=1
 
-            # HH API
             HH_CLIENT_ID="${{ secrets.HH_CLIENT_ID }}"
             HH_CLIENT_SECRET="${{ secrets.HH_CLIENT_SECRET }}"
             HH_REDIRECT_URI="${{ secrets.HH_REDIRECT_URI }}"
 
-            # OpenAI/OpenRouter
             OPENAI_MODEL="${{ vars.OPENAI_MODEL }}"
             OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}"
             EOF
@@ -150,7 +142,6 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          # port: ${{ secrets.DEPLOY_PORT }} # Optional, default 22
           script: |
             # Stop on error
             set -e
@@ -167,10 +158,10 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull new images
-            docker-compose pull
+            docker compose pull
 
             # Restart services
-            docker-compose up -d --remove-orphans
+            docker compose up -d --remove-orphans
 
             # Cleanup old images
             docker image prune -f
