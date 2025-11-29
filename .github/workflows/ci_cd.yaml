@@ -95,23 +95,6 @@ jobs:
 
     # Определяем переменные окружения на уровне job
     # Это делает код более читаемым и позволяет использовать переменные в разных steps
-    env:
-      LOG_LEVEL: ${{ vars.LOG_LEVEL || 'INFO' }}
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      BOT_USERNAME: ${{ vars.BOT_USERNAME }}
-      WEBHOOK_PATH: ${{ vars.WEBHOOK_PATH }}
-      WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASS: ${{ secrets.DB_PASS }}
-      DB_HOST: ${{ vars.DB_HOST }}
-      DB_NAME: ${{ vars.DB_NAME }}
-      REDIS_HOST: ${{ vars.REDIS_HOST }}
-      HH_CLIENT_ID: ${{ secrets.HH_CLIENT_ID }}
-      HH_CLIENT_SECRET: ${{ secrets.HH_CLIENT_SECRET }}
-      HH_REDIRECT_URI: ${{ secrets.HH_REDIRECT_URI }}
-      OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 
     steps:
 #      - name: Create env file for compose
@@ -158,6 +141,23 @@ jobs:
 
       - name: Deploy using SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          LOG_LEVEL: ${{ vars.LOG_LEVEL || 'INFO' }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          BOT_USERNAME: ${{ vars.BOT_USERNAME }}
+          WEBHOOK_PATH: ${{ vars.WEBHOOK_PATH }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          REDIS_HOST: ${{ vars.REDIS_HOST }}
+          HH_CLIENT_ID: ${{ secrets.HH_CLIENT_ID }}
+          HH_CLIENT_SECRET: ${{ secrets.HH_CLIENT_SECRET }}
+          HH_REDIRECT_URI: ${{ secrets.HH_REDIRECT_URI }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
