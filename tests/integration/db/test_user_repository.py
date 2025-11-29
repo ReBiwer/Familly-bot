@@ -1,5 +1,5 @@
-from source.domain.entities.user import UserEntity
-from source.infrastructure.db.repositories.user import UserRepository
+from src.domain.entities.user import UserEntity
+from src.infrastructure.db.repositories.user import UserRepository
 
 
 async def test_create_user(user_repo: UserRepository, test_user_entity: UserEntity):

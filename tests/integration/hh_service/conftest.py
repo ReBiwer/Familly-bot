@@ -12,13 +12,12 @@ import uvicorn
 from hh_api.auth.keyed_stores import TokenPair
 from hh_api.auth.token_manager import OAuthConfig
 from playwright.async_api import Browser
-
-from source.application.services.hh_service import AuthTokens
-from source.domain.entities.user import UserEntity
-from source.domain.entities.vacancy import VacancyEntity
-from source.infrastructure.services.hh_service import HHService
-from source.infrastructure.settings.test import TestAppSettings
-from source.main import create_web_app
+from src.application.services.hh_service import AuthTokens
+from src.domain.entities.user import UserEntity
+from src.domain.entities.vacancy import VacancyEntity
+from src.infrastructure.services.hh_service import HHService
+from src.infrastructure.settings.test import TestAppSettings
+from src.main import create_web_app
 
 
 @pytest.fixture(scope="package")
@@ -39,7 +38,7 @@ def oauth_url(hh_service: HHService, test_settings: TestAppSettings) -> str:
 
 @pytest.fixture(scope="package")
 def mock_hh_service(hh_service: HHService, session_mocker):
-    session_mocker.patch("source.infrastructure.di.providers.HHService", return_value=hh_service)
+    session_mocker.patch("src.infrastructure.di.providers.HHService", return_value=hh_service)
 
 
 @pytest.fixture(scope="package")

@@ -28,11 +28,11 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project --compile-bytecode
 
 # Копируем исходный код и связанные артефакты
-COPY source ./source
+COPY src ./source
 COPY alembic.ini ./alembic.ini
 COPY README.md ./README.md
 
-# Устанавливаем проект (появится исполняемый модуль source.* в .venv)
+# Устанавливаем проект (появится исполняемый модуль src.* в .venv)
 RUN uv sync --frozen --no-dev --compile-bytecode
 
 ###############################################################################

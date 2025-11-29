@@ -1,9 +1,8 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from source.domain.entities.user import UserEntity
-from source.infrastructure.db.repositories.user import UserRepository
-from source.infrastructure.db.uow import UnitOfWork
+from src.domain.entities.user import UserEntity
+from src.infrastructure.db.repositories.user import UserRepository
+from src.infrastructure.db.uow import UnitOfWork
 
 
 async def test_uow_commit(async_session: AsyncSession, test_user_entity: UserEntity):

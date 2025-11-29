@@ -1,10 +1,10 @@
-from source.domain.entities.employer import EmployerEntity
-from source.domain.entities.response import ResponseToVacancyEntity
-from source.domain.entities.resume import ResumeEntity
-from source.domain.entities.user import UserEntity
-from source.domain.entities.vacancy import VacancyEntity
-from source.infrastructure.services.hh_service import HHService
-from source.infrastructure.settings.test import TestAppSettings
+from src.domain.entities.employer import EmployerEntity
+from src.domain.entities.response import ResponseToVacancyEntity
+from src.domain.entities.resume import ResumeEntity
+from src.domain.entities.user import UserEntity
+from src.domain.entities.vacancy import VacancyEntity
+from src.infrastructure.services.hh_service import HHService
+from src.infrastructure.settings.test import TestAppSettings
 
 
 async def test_get_me(hh_service: HHService, test_settings: TestAppSettings):

@@ -1,9 +1,8 @@
 import datetime
 
 import pytest
-
-from source.domain.entities.resume import JobExperienceEntity, ResumeEntity
-from source.domain.entities.user import UserEntity
+from src.domain.entities.resume import JobExperienceEntity, ResumeEntity
+from src.domain.entities.user import UserEntity
 
 
 @pytest.fixture(scope="package")

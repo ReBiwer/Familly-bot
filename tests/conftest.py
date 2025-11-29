@@ -1,7 +1,6 @@
 import pytest
 from playwright.sync_api import Page
-
-from source.infrastructure.settings.test import TestAppSettings
+from src.infrastructure.settings.test import TestAppSettings
 
 
 @pytest.fixture(scope="session")
