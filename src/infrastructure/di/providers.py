@@ -42,15 +42,15 @@ class ServicesProviders(Provider):
     @provide
     def oauth_config(self) -> OAuthConfig:
         return OAuthConfig(
-            client_id=app_settings.HH_CLIENT_ID,
-            client_secret=app_settings.HH_CLIENT_SECRET,
-            redirect_uri=app_settings.HH_REDIRECT_URI,
-            token_url=app_settings.HH_TOKEN_URL,
+            client_id=app_settings.HH.CLIENT_ID,
+            client_secret=app_settings.HH.CLIENT_SECRET,
+            redirect_uri=app_settings.HH.REDIRECT_URI,
+            token_url=app_settings.HH.TOKEN_URL,
         )
 
     @provide
     def keyed_store(self) -> KeyedTokenStore:
-        redis_client = Redis.from_url(app_settings.redis_url)
+        redis_client = Redis.from_url(app_settings.REDIS.redis_url)
         return RedisKeyedTokenStore(redis_client)
 
     @provide
@@ -76,8 +76,8 @@ class ServicesProviders(Provider):
     @provide
     async def get_checkpointer(self) -> AsyncGenerator[BaseCheckpointSaver, None]:
         async with AsyncRedisSaver.from_conn_string(
-            app_settings.redis_url,
-            ttl={"default_ttl": app_settings.REDIS_CHECKPOINT_TTL},
+            app_settings.REDIS.redis_url,
+            ttl={"default_ttl": app_settings.REDIS.CHECKPOINT_TTL},
         ) as checkpointer:
             await checkpointer.asetup()
             yield checkpointer

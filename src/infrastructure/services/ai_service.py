@@ -48,14 +48,14 @@ class AIService(IAIService):
     def __init__(self, checkpointer: BaseCheckpointSaver, create_png_graph: bool = False):
         logger.debug(
             "Инициализация LLM модели: %s\nBase URL модели: %s",
-            app_settings.OPENAI_MODEL,
-            app_settings.OPENROUTER_BASE_URL,
+            app_settings.LLM.MODEL,
+            app_settings.LLM.BASE_URL,
         )
         self.llm = ChatOpenAI(
-            model=app_settings.OPENAI_MODEL,
+            model=app_settings.LLM.MODEL,
             temperature=0.7,
-            api_key=app_settings.OPENROUTER_API_KEY,  # pyright: ignore[reportArgumentType]
-            base_url=app_settings.OPENROUTER_BASE_URL,
+            api_key=app_settings.LLM.API_KEY,  # pyright: ignore[reportArgumentType]
+            base_url=app_settings.LLM.BASE_URL,
         )
         self._workflow = self._build_workflow(checkpointer)
         logger.debug("The workflow is built")

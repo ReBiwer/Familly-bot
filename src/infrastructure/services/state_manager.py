@@ -8,7 +8,7 @@ class StateManager(IStateManager):
     async def state_convert(self, state, payload: str, request: Request) -> URL:
         if state == "telegram":
             bot_link = create_deep_link(
-                app_settings.BOT_USERNAME,
+                app_settings.FRONT.BOT_USERNAME,
                 link_type="start",
                 payload=payload,
                 encode=True,

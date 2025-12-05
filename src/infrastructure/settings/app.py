@@ -1,56 +1,125 @@
 from pathlib import Path
 
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class AppSettings(BaseSettings):
-    # Базовые настройки приложения
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent
-    LOG_LEVEl: str = "INFO"
-    BOT_TOKEN: str
-    BOT_USERNAME: str
-    WEBHOOK_PATH: str
-    WEBHOOK_URL: str
-    BOT_APP_HOST: str
-    BOT_APP_PORT: int
-    BACKEND_HOST: str
-    BACKEND_PORT: int
-    # Настройки базы данных
-    DB_USER: str
-    DB_PASS: str
-    DB_HOST: str
-    DB_NAME: str
-    # Настройки подключения к Redis
-    REDIS_HOST: str
-    REDIS_PORT: str
+class DBSettings(BaseModel):
+    """
+    Настройки подключения к базе данных PostgreSQL.
 
-    # JWT настройки
-    JWT_TOKEN: str
-    JWT_ALG: str = "HS256"
-    # Настройки для работы с API hh.ru
-    HH_CLIENT_ID: str
-    HH_CLIENT_SECRET: str
-    HH_REDIRECT_URI: str
-    HH_TOKEN_URL: str = "https://api.hh.ru/token"
-    # Настройки для работы с llm
-    OPENAI_MODEL: str
-    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
-    OPENROUTER_API_KEY: str
-    # настройки TTL для Redis checkpoints (в минутах)
-    REDIS_CHECKPOINT_NUM_DB: int
-    REDIS_CHECKPOINT_TTL: int = 60  # Время жизни сейфпоинтов по умолчанию (1 час)
+    Использует BaseModel (не BaseSettings), чтобы переменные загружались
+    через родительский AppSettings с правильным префиксом DB__
+    """
 
-    model_config = SettingsConfigDict(env_file=f"/{BASE_DIR}/.env", extra="ignore")
+    USER: str
+    PASS: str
+    HOST: str
+    NAME: str
 
     @property
     def db_url(self) -> str:
-        return (
-            f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:5432/{self.DB_NAME}"
-        )
+        return f"postgresql+asyncpg://{self.USER}:{self.PASS}@{self.HOST}:5432/{self.NAME}"
+
+
+class RedisSettings(BaseModel):
+    """
+    Настройки подключения к Redis.
+
+    Переменные загружаются через AppSettings с префиксом REDIS__
+    """
+
+    HOST: str
+    PORT: str
+    CHECKPOINT_NUM_DB: int
+    CHECKPOINT_TTL: int = 60  # Время жизни сейфпоинтов по умолчанию (1 час)
 
     @property
     def redis_url(self) -> str:
-        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_CHECKPOINT_NUM_DB}"
+        return f"redis://{self.HOST}:{self.PORT}/{self.CHECKPOINT_NUM_DB}"
+
+
+class HHAPISettings(BaseModel):
+    """
+    Настройки для работы с API HeadHunter.
+
+    Переменные загружаются через AppSettings с префиксом HH__
+    """
+
+    CLIENT_ID: str
+    CLIENT_SECRET: str
+    REDIRECT_URI: str
+    TOKEN_URL: str = "https://api.hh.ru/token"
+
+
+class LLMSettings(BaseModel):
+    """
+    Настройки для работы с Language Model (LLM).
+
+    Переменные загружаются через AppSettings с префиксом LLM__
+    """
+
+    MODEL: str
+    BASE_URL: str = "https://openrouter.ai/api/v1"
+    API_KEY: str
+
+
+class AuthSettings(BaseModel):
+    """
+    Настройки аутентификации и авторизации.
+
+    Переменные загружаются через AppSettings с префиксом AUTH__
+    """
+
+    JWT_TOKEN: str
+    JWT_ALG: str = "HS256"
+
+
+class Frontsettings(BaseModel):
+    """
+    Настройки для взаимодействия с фронтом (телеграм бот, фронт, мобильное приложение)
+
+    Переменные закрюжаются через AppSettings с префиксом FRONT__
+    """
+
+    BOT_USERNAME: str
+
+
+class AppSettings(BaseSettings):
+    """
+    Главные настройки приложения.
+
+    Загружает все переменные из .env файла.
+    Вложенные модели используют двойное подчеркивание (__) как разделитель.
+
+    Пример переменных окружения:
+    - HOST=localhost
+    - PORT=8000
+    - DB__USER=postgres
+    - DB__PASS=secret
+    - REDIS__HOST=localhost
+    - LLM__API_KEY=sk-xxx
+    """
+
+    # Базовые настройки приложения
+    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent
+    LOG_LEVEl: str = "INFO"
+    HOST: str
+    PORT: int
+
+    # Вложенные настройки - теперь будут корректно загружены
+    AUTH: AuthSettings
+    DB: DBSettings
+    REDIS: RedisSettings
+    HH: HHAPISettings
+    LLM: LLMSettings
+    FRONT: Frontsettings
+
+    model_config = SettingsConfigDict(
+        env_file=f"/{BASE_DIR}/.env",
+        extra="ignore",
+        env_nested_delimiter="__",  # Ключевой параметр для вложенных моделей!
+    )
 
 
 app_settings = AppSettings()

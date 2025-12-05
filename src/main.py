@@ -56,8 +56,8 @@ if __name__ == "__main__":
     else:
         app = create_web_app()
         options = get_app_options(
-            host=app_settings.BACKEND_HOST,
-            port=app_settings.BACKEND_PORT,
+            host=app_settings.HOST,
+            port=app_settings.PORT,
             timeout=900,
             workers=4,
         )
