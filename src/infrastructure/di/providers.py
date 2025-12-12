@@ -1,8 +1,6 @@
 from collections.abc import AsyncGenerator
 
-from aiogram.fsm.context import FSMContext
 from dishka import Provider, Scope, provide
-from dishka.integrations.aiogram import AiogramMiddlewareData
 from hh_api.auth import KeyedTokenStore, OAuthConfig, RedisKeyedTokenStore
 from langgraph.checkpoint.memory import BaseCheckpointSaver
 from langgraph.checkpoint.redis import AsyncRedisSaver
@@ -17,12 +15,8 @@ from src.application.services.ai_service import IAIService
 from src.application.services.hh_service import IHHService
 from src.application.services.state_manager import IStateManager
 from src.application.use_cases.auth_hh import OAuthHHUseCase
-from src.application.use_cases.bot.authorization import AuthUseCase
 from src.application.use_cases.generate_response import GenerateResponseUseCase
 from src.application.use_cases.regenerate_response import RegenerateResponseUseCase
-from src.constants.keys import StorageKeys
-from src.domain.entities.resume import ResumeEntity
-from src.domain.entities.user import UserEntity
 from src.infrastructure.db.engine import async_session_maker
 from src.infrastructure.db.repositories.resume import (
     JobExperienceRepository,
@@ -141,40 +135,3 @@ class RepositoriesProviders(Provider):
     @provide
     def get_job_experience_repository(self) -> type[IJobExperienceRepository]:
         return JobExperienceRepository
-
-
-class BotProvider(Provider):
-    scope = Scope.REQUEST
-
-    @provide
-    async def get_user_bot(self, middleware_data: AiogramMiddlewareData) -> UserEntity | None:
-        state: FSMContext = middleware_data.get("state")
-        data_state = await state.get_data()
-        if StorageKeys.USER_INFO in data_state and data_state[StorageKeys.USER_INFO]:
-            return UserEntity.model_validate_json(data_state[StorageKeys.USER_INFO])
-        return None
-
-    @provide
-    async def get_resume_user_bot(
-        self,
-        middleware_data: AiogramMiddlewareData,
-        uow: IUnitOfWork,
-        class_resume_repo: type[IResumeRepository],
-    ) -> ResumeEntity | None:
-        state: FSMContext = middleware_data.get("state")
-        data_state = await state.get_data()
-        if StorageKeys.ACTIVE_RESUME_ID in data_state and data_state[StorageKeys.ACTIVE_RESUME_ID]:
-            async with uow as session:
-                resume_repo = class_resume_repo(session)
-                resume = await resume_repo.get(id=data_state[StorageKeys.ACTIVE_RESUME_ID])
-            return resume
-        return None
-
-    @provide
-    async def auth_use_case(
-        self,
-        token_manager: CustomTokenManager,
-        uow: IUnitOfWork,
-        class_repo: type[IUserRepository],
-    ) -> AuthUseCase:
-        return AuthUseCase(token_manager, uow, class_repo)
