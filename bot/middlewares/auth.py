@@ -6,8 +6,9 @@ from typing import Any
 from aiogram import BaseMiddleware
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, TelegramObject
-from src.constants.keys import StorageKeys
-from src.domain.entities.user import UserEntity
+
+from bot.constants.keys import StorageKeys
+from bot.domain.entities.user import UserEntity
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,6 @@ class AuthMiddleware(BaseMiddleware):
             logger.debug("Пользователь авторизован")
             return await handler(message, data)
 
-        logger.warning("Пользователь %s не авторизован", message.from_user.username)
+        logger.debug("Пользователь %s не авторизован", message.from_user.username)
         await message.answer("Необходимо авторизоваться.\nИспользуйте команду /start для начала.")
         return None
