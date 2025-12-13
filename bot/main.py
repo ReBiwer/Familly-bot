@@ -7,10 +7,10 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
-from bot.infrastructure.di import init_di_containers
-from bot.infrastructure.middlewares import AuthMiddleware
-from bot.infrastructure.settings import bot_settings
-from bot.presentation.routers import main_router
+from bot.di import init_di_containers
+from bot.middlewares import AuthMiddleware
+from bot.routers import main_router
+from bot.settings import bot_settings
 
 logger = logging.getLogger(__name__)
 
