@@ -8,13 +8,12 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-
-from source.infrastructure.db.repositories.resume import (
+from src.infrastructure.db.repositories.resume import (
     JobExperienceRepository,
     ResumeRepository,
 )
-from source.infrastructure.db.repositories.user import UserRepository
-from source.infrastructure.settings.test import TestAppSettings
+from src.infrastructure.db.repositories.user import UserRepository
+from src.infrastructure.settings.test import TestAppSettings
 
 
 @pytest.fixture(scope="package")

@@ -1,8 +1,7 @@
 import pytest
 from playwright.async_api import Page
-
-from source.application.services.hh_service import AuthTokens
-from source.infrastructure.settings.test import TestAppSettings
+from src.application.services.hh_service import AuthTokens
+from src.infrastructure.settings.test import TestAppSettings
 
 
 @pytest.mark.skip
