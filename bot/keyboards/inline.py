@@ -3,8 +3,9 @@ from typing import Literal
 from aiogram.filters.callback_data import CallbackData
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
 from pydantic import Field
-from src.constants.keys import CallbackKeys
-from src.domain.entities.resume import ResumeEntity
+
+from bot.constants import CallbackKeys
+from bot.entities import ResumeEntity
 
 
 class ResumeCallback(CallbackData, prefix="resume"):

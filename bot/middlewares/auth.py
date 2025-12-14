@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, TelegramObject
 
 from bot.constants.keys import StorageKeys
-from bot.domain.entities.user import UserEntity
+from bot.entities.user import UserEntity
 
 logger = logging.getLogger(__name__)
 
