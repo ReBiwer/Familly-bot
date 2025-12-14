@@ -35,13 +35,8 @@ class StartMessages:
 
 class ProfileMessages:
     @staticmethod
-    def profile_base(user: UserEntity, active_resume_title: str | None = None) -> str:
-        if active_resume_title:
-            return (
-                f"👤 <b>Ваш профиль HH.ru</b>\n\n{user.name}\n"
-                f"Выбранно резюме: {active_resume_title}"
-            )
-        return f"👤 <b>Ваш профиль HH.ru</b>\n\n{user.name}"
+    def profile_base(user: UserEntity) -> str:
+        return f"👤 <b>Ваш профиль</b>\n\n{user.name}"
 
 
 class AIMessages:

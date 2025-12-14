@@ -3,10 +3,7 @@ class StorageKeys:
 
     # Информация о пользователе HH
     USER_INFO = "user_data"
-    ACTIVE_RESUME = "active_resume_id"
     AI_RESPONSE = "ai_response"
-    CURRENT_VACANCY_URL = "current_vacancy_url"
-    CURRENT_VACANCY_HH_ID = "current_vacancy_hh_id"
 
 
 class CallbackKeys:

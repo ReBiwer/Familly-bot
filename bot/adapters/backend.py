@@ -3,7 +3,7 @@ import logging
 import httpx
 
 from bot.constants import BackendUrls
-from bot.entities import ResumeEntity, UserEntity
+from bot.entities import UserEntity
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +26,6 @@ class BackendAdapter:
     async def get_user(self, user_id: int) -> UserEntity:
         result = await self._request_get(BackendUrls.GET_USER, user_id=user_id)
         return UserEntity.model_validate_json(result.content)
-
-    async def get_resume(self, resume_id: int) -> ResumeEntity:
-        result = await self._request_get(BackendUrls.GET_RESUME, resume_id=resume_id)
-        return ResumeEntity.model_validate_json(result.content)
 
     async def get_llm_response(
         self,
