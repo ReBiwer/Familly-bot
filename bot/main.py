@@ -7,6 +7,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
+from bot.common import setup_logging
 from bot.di import init_di_containers
 from bot.middlewares import AuthMiddleware
 from bot.routers import main_router
@@ -67,6 +68,7 @@ async def run_bot():
     # Запускаем polling
     # skip_updates=True - пропускаем сообщения, которые пришли пока бот был оффлайн
     logger.debug("Bot started")
+    setup_logging()
     await dp.start_polling(bot)
 
 
