@@ -13,16 +13,15 @@ class RedisSettings(BaseModel):
 
     HOST: str
     PORT: str
-    CHECKPOINT_NUM_DB: int
-    CHECKPOINT_TTL: int = 60  # Время жизни сейфпоинтов по умолчанию (1 час)
+    NUM_DB: int
 
     @property
     def redis_url(self) -> str:
-        return f"redis://{self.HOST}:{self.PORT}/{self.CHECKPOINT_NUM_DB}"
+        return f"redis://{self.HOST}:{self.PORT}/{self.NUM_DB}"
 
 
 class BotSettings(BaseSettings):
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent
+    BASE_DIR: Path = Path(__file__).resolve().parent
     BOT_TOKEN: str
     BACKEND_BASE_URL: str
 
