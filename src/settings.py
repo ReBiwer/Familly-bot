@@ -85,6 +85,47 @@ class Frontsettings(BaseModel):
     BOT_USERNAME: str
 
 
+class PromptSettings(BaseModel):
+    """
+    Настройки для системы управления промптами.
+
+    Переменные загружаются через AppSettings с префиксом PROMPT__
+
+    Attributes:
+        STATUS: Статус промптов для использования ('dev' или 'prod').
+                - 'dev' — промпты в разработке, могут быть нестабильны
+                - 'prod' — проверенные промпты для продакшена
+        VERSION: Версия промпта (например, '1.0', '2.1').
+                 Позволяет использовать разные версии одного промпта.
+        FILE_NAME: Имя YAML файла с промптами.
+                   По умолчанию 'prompts.yaml'.
+
+    Пример переменных окружения:
+        PROMPT__STATUS=prod
+        PROMPT__VERSION=1.0
+    """
+
+    STATUS: str = "dev"  # dev | prod
+    VERSION: str = "1.0"
+    FILE_NAME: str = "prompts.yaml"
+
+    @property
+    def file_path(self) -> Path:
+        """
+        Возвращает абсолютный путь к файлу с промптами.
+
+        Путь вычисляется относительно директории src/, где лежит settings.py.
+        Это гарантирует корректную работу независимо от того,
+        откуда запущено приложение.
+
+        Returns:
+            Path: Абсолютный путь к файлу промптов (например, /home/user/project/src/prompts.yaml)
+        """
+        # __file__ — путь к settings.py, parent — директория src/
+        src_dir = Path(__file__).resolve().parent
+        return src_dir / self.FILE_NAME
+
+
 class AppSettings(BaseSettings):
     """
     Главные настройки приложения.
@@ -99,10 +140,12 @@ class AppSettings(BaseSettings):
     - DB__PASS=secret
     - REDIS__HOST=localhost
     - LLM__API_KEY=sk-xxx
+    - PROMPT__STATUS=prod
+    - PROMPT__VERSION=1.0
     """
 
     # Базовые настройки приложения
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
+    BASE_DIR: Path = Path(__file__).resolve().parent
     LOG_LEVEl: str = "INFO"
     HOST: str
     PORT: int
@@ -114,6 +157,8 @@ class AppSettings(BaseSettings):
     HH: HHAPISettings
     LLM: LLMSettings
     FRONT: Frontsettings
+    # PROMPT имеет значения по умолчанию — необязателен в .env
+    PROMPT: PromptSettings = PromptSettings()
 
     model_config = SettingsConfigDict(
         env_file=f"/{BASE_DIR}/.env",

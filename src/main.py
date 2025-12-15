@@ -1,12 +1,12 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from src.infrastructure.di import init_di_container
-from src.infrastructure.monitoring import setup_monitoring
-from src.presentation.api.ai import router as ai_router
-from src.presentation.api.auth import router as auth_router
-from src.presentation.api.health import router as health_router
-from src.presentation.wsgi import Application, get_app_options
+from src.di import init_di_container
+from src.monitoring import setup_monitoring
+from src.api.ai import router as ai_router
+from src.api.auth import router as auth_router
+from src.api.health import router as health_router
+from src.wsgi import Application, get_app_options
 
 
 @asynccontextmanager
@@ -32,7 +32,7 @@ def create_web_app() -> FastAPI:
 
 if __name__ == "__main__":
     from src.common import setup_logging
-    from src.infrastructure.settings.app import app_settings
+    from src.settings import app_settings
 
     setup_logging(app_settings.LOG_LEVEl)
 

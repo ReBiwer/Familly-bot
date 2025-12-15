@@ -7,7 +7,7 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import RedirectResponse
 from src.application.services.hh_service import AuthTokens, IHHService
 from src.application.use_cases.auth_hh import OAuthHHUseCase
-from src.infrastructure.settings.app import app_settings
+from src.settings import app_settings
 from starlette.routing import NoMatchFound
 
 router = APIRouter(

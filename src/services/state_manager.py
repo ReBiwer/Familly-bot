@@ -1,7 +1,7 @@
 from aiogram.utils.deep_linking import create_deep_link
 from fastapi import Request
 from src.application.services.state_manager import URL, IStateManager
-from src.infrastructure.settings.app import app_settings
+from src.settings import app_settings
 
 
 class StateManager(IStateManager):
