@@ -102,7 +102,7 @@ class AppSettings(BaseSettings):
     """
 
     # Базовые настройки приложения
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent
+    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
     LOG_LEVEl: str = "INFO"
     HOST: str
     PORT: int

@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 
-from bot.create_bot import run_bot
 from fastapi import FastAPI
 from src.infrastructure.di import init_di_container
 from src.infrastructure.monitoring import setup_monitoring
@@ -32,38 +31,21 @@ def create_web_app() -> FastAPI:
 
 
 if __name__ == "__main__":
-    import argparse
-
     from src.common import setup_logging
     from src.infrastructure.settings.app import app_settings
 
     setup_logging(app_settings.LOG_LEVEl)
 
-    parser = argparse.ArgumentParser(description="Какое приложение запускать")
-    parser.add_argument(
-        "--type-app",
-        type=str,
-        choices=("telegram", "web"),
-        default="telegram",
-        help="Какое приложение запустить",
+    app = create_web_app()
+    options = get_app_options(
+        host=app_settings.HOST,
+        port=app_settings.PORT,
+        timeout=900,
+        workers=4,
     )
-    args = parser.parse_args()
 
-    if args.type_app == "telegram":
-        import asyncio
-
-        asyncio.run(run_bot())
-    else:
-        app = create_web_app()
-        options = get_app_options(
-            host=app_settings.HOST,
-            port=app_settings.PORT,
-            timeout=900,
-            workers=4,
-        )
-
-        gunicorn_app = Application(
-            app=app,
-            options=options,
-        )
-        gunicorn_app.run()
+    gunicorn_app = Application(
+        app=app,
+        options=options,
+    )
+    gunicorn_app.run()
