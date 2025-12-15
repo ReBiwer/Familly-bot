@@ -7,18 +7,27 @@ Pydantic схемы для валидации данных API.
 - *Update — данные для обновления (все поля опциональные)
 
 Использование:
-    from src.schemas import UserCreate, UserRead
+    from src.schemas import UserCreate, UserRead, ChatRequest
 
     @router.post("/users", response_model=UserRead)
     async def create_user(data: UserCreate):
         ...
 """
 
+from src.schemas.auth import TokenPayload, TokenRequest, TokenResponse
+from src.schemas.chat import ChatRequest, ChatResponse
 from src.schemas.user import UserCreate, UserRead, UserUpdate
 
 __all__ = [
+    # User
     "UserCreate",
     "UserRead",
     "UserUpdate",
+    # Auth
+    "TokenRequest",
+    "TokenResponse",
+    "TokenPayload",
+    # Chat
+    "ChatRequest",
+    "ChatResponse",
 ]
-

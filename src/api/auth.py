@@ -1,14 +1,19 @@
+"""
+Роутер авторизации.
+
+Простая JWT авторизация для семейного бота.
+Пользователь авторизуется через Telegram ID.
+"""
+
 import logging
+from datetime import timedelta
 from typing import Annotated
 
-from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Query, Request
-from fastapi.responses import RedirectResponse
-from src.application.services.hh_service import AuthTokens, IHHService
-from src.application.use_cases.auth_hh import OAuthHHUseCase
-from src.settings import app_settings
-from starlette.routing import NoMatchFound
+from fastapi import APIRouter, Body, HTTPException, status
+
+from src.schemas import TokenPayload, TokenRequest, TokenResponse
+from src.utils import create_access_token, verify_token
 
 router = APIRouter(
     prefix="/auth",
@@ -16,84 +21,57 @@ router = APIRouter(
     route_class=DishkaRoute,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
-@router.get("/hh/oauth/url", name="get_oauth_url")
-async def get_oauth_url(
-    hh_service: FromDishka[IHHService],
-    state: Annotated[
-        str,
-        Query(
-            description="Текущее состояние, для возврата после авторизации",
-        ),
-    ] = "test_tokens",
-) -> str:
+@router.post("/token", response_model=TokenResponse)
+async def get_token(request: TokenRequest) -> TokenResponse:
     """
-    Эндпоинт для получения ссылки для авторизации
+    Получение JWT токена по Telegram ID.
 
-    :param state: Текущее состояние куда нужно будет выполнить редирект после получения токенов
-    :param hh_service: Сервис для работы с hh.ru
-    :return:
+    Простая авторизация — любой telegram_id получает токен.
+    В продакшене можно добавить проверку через Telegram Bot API.
+
+    Args:
+        request: Запрос с telegram_id
+
+    Returns:
+        TokenResponse с access_token
     """
-    return hh_service.get_auth_url(state)
+    logger.info("Token requested for telegram_id=%s", request.telegram_id)
 
-
-@router.get("/hh/tokens", name="get_hh_token")
-async def get_tokens(
-    request: Request,
-    use_case: FromDishka[OAuthHHUseCase],
-    code: Annotated[str, Query(description="Код авторизации от HeadHunter")],
-    state: Annotated[str, Query(description="Состояние переданное для возврата после авторизации")],
-) -> RedirectResponse:
-    """
-    Эндпоинт для получения токенов после OAuth редиректа от HeadHunter.
-
-    :param request: Объект запроса для получения redirect_url по имени (state)
-    :param use_case: Use case, где описан процесс авторизации (получения токенов и url для редиректа)
-    :param code: Обязательный код авторизации, который HeadHunter передает в query параметрах
-    :param state: Обязательное состояние для редиректа после получения токенов
-    :return:
-    """
-    try:
-        logger.info("Обмен exchange token'а на access и refresh токены")
-        redirect_url, tokens = await use_case(code, state, request, app_settings.HH_FAKE_SUBJECT)
-        response = RedirectResponse(redirect_url)
-        response.set_cookie("access_token", value=tokens["access_token"])
-        response.set_cookie("refresh_token", value=tokens["refresh_token"])
-        logger.info("Токены получены")
-        return response
-    except ConnectionError:
-        logger.error("Ошибка соединения с API hh.ru")
-        raise
-    except NoMatchFound as e:
-        logger.critical("Не корректно передан state=%s. Детали ошибки: %s", state, exc_info=e)
-        raise
-
-
-@router.get("/hh/tokens/test", name="test_tokens")
-async def get_tokens_for_test(
-    hh_service: FromDishka[IHHService],
-    request: Request,
-    code: Annotated[str, Query(description="Код авторизации от HeadHunter")] = None,
-    state: Annotated[
-        str, Query(description="Состояние переданное для возврата после авторизации")
-    ] = None,
-) -> AuthTokens:
-    """
-    Тестовая ручка для получения токенов авторизации
-    :param code: код авторизации
-    :param request: объект Request
-    :param state: переданное состояние для редиректа
-    :param hh_service: сервис для работы с API hh.ru
-    :return:
-    """
-    logger.warning("Используется тестовая ручка для получения access токена")
-    if code:
-        return (await hh_service.auth(code))[1]
-
-    return AuthTokens(
-        access_token=request.cookies.get("access_token"),
-        refresh_token=request.cookies.get("refresh_token"),
+    expires_delta = timedelta(days=7)
+    access_token = create_access_token(
+        telegram_id=request.telegram_id,
+        expires_delta=expires_delta,
     )
+
+    return TokenResponse(
+        access_token=access_token,
+        expires_in=int(expires_delta.total_seconds()),
+    )
+
+
+@router.post("/verify", response_model=TokenPayload)
+async def verify(token: Annotated[str, Body(embed=True)]) -> TokenPayload:
+    """
+    Проверка валидности токена.
+
+    Args:
+        token: JWT токен для проверки
+
+    Returns:
+        TokenPayload если токен валиден
+
+    Raises:
+        HTTPException 401 если токен невалиден
+    """
+    payload = verify_token(token)
+
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+
+    return payload
