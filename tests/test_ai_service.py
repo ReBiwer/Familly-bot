@@ -218,4 +218,3 @@ class TestAIServiceRetry:
 
         # Только один вызов — без retry
         assert mock_instance.ainvoke.call_count == 1
-

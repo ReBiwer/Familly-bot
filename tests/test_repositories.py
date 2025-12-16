@@ -6,7 +6,6 @@
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.db.models import UserModel
 from src.db.repositories import UserRepository
 
@@ -202,4 +201,3 @@ class TestUserRepository:
         users = await repo.get_many(last_name="Несуществующий")
 
         assert users == []
-

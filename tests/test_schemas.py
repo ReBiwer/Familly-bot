@@ -8,7 +8,6 @@ from datetime import datetime
 
 import pytest
 from pydantic import ValidationError
-
 from src.schemas import UserCreate, UserRead, UserUpdate
 
 
@@ -196,4 +195,3 @@ class TestUserUpdate:
         """Ошибка при невалидном email в обновлении."""
         with pytest.raises(ValidationError):
             UserUpdate(email="not-an-email")
-
