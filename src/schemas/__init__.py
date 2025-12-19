@@ -14,7 +14,7 @@ Pydantic схемы для валидации данных API.
         ...
 """
 
-from src.schemas.auth import TokenPayload, TokenRequest, TokenResponse
+from src.schemas.auth import TelegramAuthRequest, TokenPair, TokenPayload, TokenRequest
 from src.schemas.chat import ChatRequest, ChatResponse
 from src.schemas.user import UserCreate, UserRead, UserUpdate
 
@@ -25,7 +25,8 @@ __all__ = [
     "UserUpdate",
     # Auth
     "TokenRequest",
-    "TokenResponse",
+    "TelegramAuthRequest",
+    "TokenPair",
     "TokenPayload",
     # Chat
     "ChatRequest",
