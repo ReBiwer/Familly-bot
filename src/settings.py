@@ -83,6 +83,7 @@ class Frontsettings(BaseModel):
     """
 
     BOT_USERNAME: str
+    BOT_TOKEN: str
 
 
 class PromptSettings(BaseModel):
