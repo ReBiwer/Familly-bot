@@ -4,6 +4,7 @@
 Функции для создания и проверки JWT токенов авторизации.
 """
 
+import secrets
 import logging
 from datetime import UTC, datetime, timedelta
 
@@ -48,6 +49,9 @@ def create_access_token(telegram_id: int, expires_delta: timedelta | None = None
         app_settings.AUTH.JWT_TOKEN,
         algorithm=app_settings.AUTH.JWT_ALG,
     )
+
+def create_refresh_token() -> str:
+    return secrets.token_urlsafe(32)
 
 
 def verify_token(token: str) -> TokenPayload | None:
