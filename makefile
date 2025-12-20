@@ -4,10 +4,10 @@ tests:
 	uv run pytest
 
 makemigrations:
-	uv run alembic revision --autogenerate -m "$(comment)"
+	uv run alembic -c src/alembic.ini revision --autogenerate -m "$(comment)"
 
 migrate:
-	uv run alembic upgrade head
+	uv run alembic -c src/alembic.ini upgrade head
 
 run-all:
 	docker compose up -d
