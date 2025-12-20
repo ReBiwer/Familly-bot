@@ -5,6 +5,8 @@
 Фикстуры доступны во всех тестах без импорта.
 """
 
+import hashlib
+import hmac
 import os
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
@@ -12,6 +14,10 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from src.schemas import TelegramAuthRequest
+from src.settings import app_settings
+from src.use_cases import AuthTelegramUseCase
 
 # Устанавливаем тестовые переменные окружения ДО импорта settings
 # Это нужно, чтобы AppSettings не падал при загрузке
@@ -230,4 +236,34 @@ async def sample_refresh_token(
         user_id=sample_user.id,
         expires_at=datetime.now() + timedelta(days=7),
         device_info="test_device",
+    )
+
+
+@pytest.fixture()
+def auth_telegram_use_case(
+    user_repo: UserRepository, refresh_token_repo: RefreshTokenRepository
+) -> AuthTelegramUseCase:
+    return AuthTelegramUseCase(user_repo, refresh_token_repo)
+
+
+@pytest.fixture()
+def sample_telegram_auth_request() -> TelegramAuthRequest:
+    name = "Владимир"
+    mid_name = "Николаевич"
+    last_name = "Быков"
+    telegram_id = 1111
+    msg_to_hmac = (
+        f"name={name}\nmid_name={mid_name}\nlast_name={last_name}\ntelegram_id={telegram_id}"
+    )
+    hmac_hash_str = hmac.new(
+        key=app_settings.FRONT.BOT_TOKEN.encode(),
+        msg=msg_to_hmac.encode(),
+        digestmod=hashlib.sha256,
+    ).hexdigest()
+    return TelegramAuthRequest(
+        name="Владимир",
+        mid_name="Николаевич",
+        last_name="Быков",
+        telegram_id=1111,
+        hash_str=hmac_hash_str,
     )
