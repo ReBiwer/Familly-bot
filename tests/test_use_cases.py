@@ -4,7 +4,7 @@ import hmac
 import pytest
 from fastapi import HTTPException, status
 
-from src.db.repositories import UserRepository, RefreshTokenRepository
+from src.db.repositories import RefreshTokenRepository, UserRepository
 from src.schemas import TelegramAuthRequest, TokenPair
 from src.use_cases import AuthTelegramUseCase
 

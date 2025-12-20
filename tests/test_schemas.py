@@ -8,6 +8,7 @@ from datetime import datetime
 
 import pytest
 from pydantic import ValidationError
+
 from src.schemas import UserCreate, UserRead, UserUpdate
 
 
