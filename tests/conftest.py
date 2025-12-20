@@ -6,11 +6,12 @@
 """
 
 import os
+from collections.abc import Awaitable, Callable
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 
 # Устанавливаем тестовые переменные окружения ДО импорта settings
 # Это нужно, чтобы AppSettings не падал при загрузке
@@ -32,7 +33,9 @@ os.environ.setdefault("LLM__API_KEY", "test-key")
 os.environ.setdefault("FRONT__BOT_USERNAME", "test_bot")
 
 # Теперь можно импортировать из src
-from src.db.models import BaseModel  # noqa: E402
+from src.db.models import BaseModel, RefreshTokenModel, UserModel  # noqa: E402
+from src.db.repositories import RefreshTokenRepository, UserRepository  # noqa: E402
+from src.utils import create_refresh_token  # noqa: E402
 
 
 @pytest.fixture
@@ -128,3 +131,103 @@ async def async_session() -> AsyncSession:
 
     await engine.dispose()
 
+
+# =============================================================================
+# Фикстуры для UserRepository
+# =============================================================================
+
+
+@pytest.fixture
+def user_repo(async_session: AsyncSession) -> UserRepository:
+    """
+    Репозиторий пользователей.
+
+    Почему фикстура:
+    - Убирает дублирование `UserRepository(async_session)` в каждом тесте
+    - Единая точка создания — если конструктор изменится, правим только здесь
+    """
+    return UserRepository(async_session)
+
+
+@pytest.fixture
+async def sample_user(user_repo: UserRepository) -> UserModel:
+    """
+    Базовый тестовый пользователь.
+
+    Используй когда нужен 'просто какой-то существующий пользователь'
+    для тестирования операций чтения/обновления/удаления.
+
+    НЕ используй в тестах, которые проверяют создание пользователя
+    или работу с несуществующим пользователем.
+    """
+    return await user_repo.create(
+        name="Тест",
+        mid_name="Тестович",
+        last_name="Тестов",
+        telegram_id=100500,
+        email="test@example.com",
+    )
+
+
+@pytest.fixture
+def user_factory(user_repo: UserRepository) -> Callable[..., Awaitable[UserModel]]:
+    """
+    Фабрика для создания пользователей с кастомными данными.
+
+    Почему фабрика, а не просто фикстура:
+    - Некоторые тесты требуют несколько пользователей
+    - Каждый пользователь может иметь уникальные данные (telegram_id, email)
+    - Фикстура sample_user создаёт только одного пользователя
+
+    Пример использования:
+        async def test_something(user_factory):
+            user1 = await user_factory(name="Иван", telegram_id=111)
+            user2 = await user_factory(name="Пётр", telegram_id=222)
+
+    Как работает:
+    - defaults содержит обязательные поля со значениями по умолчанию
+    - kwargs перезаписывает/дополняет defaults
+    - Результат передаётся в repo.create()
+    """
+
+    async def _create(**kwargs) -> UserModel:
+        # Значения по умолчанию для обязательных полей
+        defaults = {
+            "name": "Тест",
+            "mid_name": "Тестович",
+            "last_name": "Тестов",
+        }
+        # Перезаписываем/дополняем переданными значениями
+        defaults.update(kwargs)
+        return await user_repo.create(**defaults)
+
+    return _create
+
+
+# =============================================================================
+# Фикстуры для RefreshTokenRepository
+# =============================================================================
+
+
+@pytest.fixture
+def refresh_token_repo(async_session: AsyncSession) -> RefreshTokenRepository:
+    """Репозиторий refresh-токенов."""
+    return RefreshTokenRepository(async_session)
+
+
+@pytest.fixture
+async def sample_refresh_token(
+    refresh_token_repo: RefreshTokenRepository,
+    sample_user: UserModel,
+) -> RefreshTokenModel:
+    """
+    Базовый тестовый refresh-токен.
+
+    Автоматически создаёт sample_user (через зависимость фикстур).
+    """
+    return await refresh_token_repo.create(
+        token_hash=create_refresh_token(),
+        user_id=sample_user.id,
+        expires_at=datetime.now() + timedelta(days=7),
+        device_info="test_device",
+    )
