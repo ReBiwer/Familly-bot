@@ -18,10 +18,11 @@ from langgraph.checkpoint.redis import AsyncRedisSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import async_session_factory
-from src.db.repositories import UserRepository
+from src.db.repositories import RefreshTokenRepository, UserRepository
 from src.services.ai import AIService
 from src.services.prompts import PromptService
 from src.settings import app_settings
+from src.use_cases import AuthTelegramUseCase
 
 
 class ServicesProvider(Provider):
@@ -141,3 +142,15 @@ class DatabaseProvider(Provider):
             UserRepository для работы с пользователями
         """
         return UserRepository(session)
+
+    @provide(scope=Scope.REQUEST)
+    def get_refresh_token_repository(self, session: AsyncSession) -> RefreshTokenRepository:
+        return RefreshTokenRepository(session)
+
+
+class UseCasesProvider(Provider):
+    @provide(scope=Scope.REQUEST)
+    def get_auth_telegram_use_case(
+        self, user_repo: UserRepository, refresh_token_repo: RefreshTokenRepository
+    ) -> AuthTelegramUseCase:
+        return AuthTelegramUseCase(user_repo, refresh_token_repo)
