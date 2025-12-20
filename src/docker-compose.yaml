@@ -1,0 +1,27 @@
+services:
+
+  postgres:
+    container_name: postgres
+    image: postgres:16.1-alpine3.18
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${DB__NAME}
+      - POSTGRES_USER=${DB__USER}
+      - POSTGRES_PASSWORD=${DB__PASS}
+    ports:
+      - "5432:5432"
+    volumes:
+      - /var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB__NAME} -U ${DB__USER}"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    restart: unless-stopped
+    networks:
+      - backend
+networks:
+  backend:
+    driver: bridge
