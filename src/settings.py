@@ -39,19 +39,6 @@ class RedisSettings(BaseModel):
         return f"redis://{self.HOST}:{self.PORT}/{self.CHECKPOINT_NUM_DB}"
 
 
-class HHAPISettings(BaseModel):
-    """
-    Настройки для работы с API HeadHunter.
-
-    Переменные загружаются через AppSettings с префиксом HH__
-    """
-
-    CLIENT_ID: str
-    CLIENT_SECRET: str
-    REDIRECT_URI: str
-    TOKEN_URL: str = "https://api.hh.ru/token"
-
-
 class LLMSettings(BaseModel):
     """
     Настройки для работы с Language Model (LLM).
@@ -155,7 +142,6 @@ class AppSettings(BaseSettings):
     AUTH: AuthSettings
     DB: DBSettings
     REDIS: RedisSettings
-    HH: HHAPISettings
     LLM: LLMSettings
     FRONT: Frontsettings
     # PROMPT имеет значения по умолчанию — необязателен в .env
