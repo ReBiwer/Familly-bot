@@ -3,11 +3,10 @@ import hmac
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
-from pytest_playwright_asyncio.pytest_playwright import device
 
 from src.db.models import RefreshTokenModel
 from src.db.repositories import RefreshTokenRepository, UserRepository
-from src.schemas import TelegramAuthRequest, RefreshTelegramRequest, TokenPair
+from src.schemas import RefreshTelegramRequest, TelegramAuthRequest, TokenPair
 from src.settings import app_settings
 from src.utils import create_access_token, create_refresh_token
 
@@ -44,7 +43,7 @@ class AuthTelegramUseCase:
             token_hash=refresh_token,
             user_id=user.id,
             expires_at=refresh_expires_at,
-            device_info="telegram"
+            device_info="telegram",
         )
         return TokenPair(
             access_token=access_token,
@@ -59,7 +58,9 @@ class RefreshTokensTelegramUseCase:
         self._refresh_token_repo = refresh_token_repo
 
     async def __call__(self, request: RefreshTelegramRequest) -> TokenPair:
-        exist: RefreshTokenModel = await self._refresh_token_repo.get_one(token_hash=request.refresh_token)
+        exist: RefreshTokenModel = await self._refresh_token_repo.get_one(
+            token_hash=request.refresh_token
+        )
         if exist is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
@@ -79,5 +80,5 @@ class RefreshTokensTelegramUseCase:
         return TokenPair(
             access_token=access_token,
             refresh_token=new_refresh_token,
-            expires_in=int(expires_delta.total_seconds())
+            expires_in=int(expires_delta.total_seconds()),
         )
