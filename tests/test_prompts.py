@@ -7,6 +7,7 @@
 from pathlib import Path
 
 import pytest
+
 from src.services.prompts import (
     PromptModel,
     PromptNotFoundError,
@@ -189,13 +190,13 @@ class TestPromptService:
         # Добавляем новый промпт в файл
         content = temp_prompts_file.read_text()
         content += """
-        - name: "new_prompt"
-            version: "1.0"
-            status: "prod"
-            description: "New"
-            input_variables: []
-            template: "New prompt"
-        """
+  - name: "new_prompt"
+    version: "1.0"
+    status: "prod"
+    description: "New"
+    input_variables: []
+    template: "New prompt"
+"""
         temp_prompts_file.write_text(content)
 
         # Перезагружаем
