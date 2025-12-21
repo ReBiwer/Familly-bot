@@ -4,8 +4,8 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter
 
-from src.schemas import TelegramAuthRequest, TokenPair
-from src.use_cases import AuthTelegramUseCase
+from src.schemas import TelegramAuthRequest, RefreshTelegramRequest, TokenPair
+from src.use_cases import AuthTelegramUseCase, RefreshTokensTelegramUseCase
 
 router = APIRouter(
     prefix="/auth",
@@ -23,3 +23,11 @@ async def auth_telegram(
 ) -> TokenPair:
     tokens = await auth_use_case(request)
     return tokens
+
+@router.post("/telegram/refresh")
+async def refresh_telegram_tokens(
+    request: RefreshTelegramRequest,
+    refresh_use_case: FromDishka[RefreshTokensTelegramUseCase],
+) -> TokenPair:
+    new_tokens = await refresh_use_case(request)
+    return new_tokens
