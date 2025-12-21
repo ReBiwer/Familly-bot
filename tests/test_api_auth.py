@@ -1,5 +1,5 @@
 """
-Тесты для API эндпоинта /auth/telegram.
+Тесты для API эндпоинтов /auth/telegram и /auth/telegram/refresh.
 
 Используем:
 - httpx.AsyncClient для async тестов FastAPI
@@ -25,7 +25,7 @@ from src.api import auth_router
 from src.db.models import BaseModel
 from src.db.repositories import RefreshTokenRepository, UserRepository
 from src.settings import app_settings
-from src.use_cases import AuthTelegramUseCase
+from src.use_cases import AuthTelegramUseCase, RefreshTokensTelegramUseCase
 
 
 class MockDatabaseProvider(Provider):
@@ -77,6 +77,14 @@ class MockDatabaseProvider(Provider):
         refresh_token_repo: RefreshTokenRepository,
     ) -> AuthTelegramUseCase:
         return AuthTelegramUseCase(user_repo, refresh_token_repo)
+
+    @provide(scope=Scope.REQUEST)
+    def get_refresh_tokens_telegram_use_case(
+        self,
+        user_repo: UserRepository,
+        refresh_token_repo: RefreshTokenRepository,
+    ) -> RefreshTokensTelegramUseCase:
+        return RefreshTokensTelegramUseCase(user_repo, refresh_token_repo)
 
 
 def create_test_app() -> FastAPI:
@@ -248,7 +256,9 @@ class TestAuthTelegramEndpoint:
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    async def test_auth_telegram_creates_user(self, test_client: AsyncClient, test_session: AsyncSession):
+    async def test_auth_telegram_creates_user(
+        self, test_client: AsyncClient, test_session: AsyncSession
+    ):
         """
         Проверяем, что авторизация создаёт пользователя в БД.
 
@@ -268,7 +278,9 @@ class TestAuthTelegramEndpoint:
         assert user.name == data["name"]
         assert user.telegram_id == data["telegram_id"]
 
-    async def test_auth_telegram_existing_user(self, test_client: AsyncClient, test_session: AsyncSession):
+    async def test_auth_telegram_existing_user(
+        self, test_client: AsyncClient, test_session: AsyncSession
+    ):
         """
         Повторная авторизация существующего пользователя.
 
@@ -314,3 +326,218 @@ class TestAuthTelegramEndpoint:
         # Проверяем значение token_type
         assert body["token_type"] == "bearer"
 
+
+class TestRefreshTelegramEndpoint:
+    """
+    Тесты для POST /auth/telegram/refresh.
+
+    Этот endpoint обновляет пару токенов для авторизованного пользователя.
+    """
+
+    def _create_valid_auth_data(self) -> dict:
+        """
+        Создаёт валидные данные для первичной авторизации.
+
+        Используем те же данные, что и в TestAuthTelegramEndpoint,
+        чтобы сначала авторизоваться и получить refresh_token.
+        """
+        name = "Владимир"
+        mid_name = "Николаевич"
+        last_name = "Быков"
+        telegram_id = 123456
+
+        msg = f"name={name}\nmid_name={mid_name}\nlast_name={last_name}\ntelegram_id={telegram_id}"
+        hash_str = hmac.new(
+            key=app_settings.FRONT.BOT_TOKEN.encode(),
+            msg=msg.encode(),
+            digestmod=hashlib.sha256,
+        ).hexdigest()
+
+        return {
+            "name": name,
+            "mid_name": mid_name,
+            "last_name": last_name,
+            "telegram_id": telegram_id,
+            "hash_str": hash_str,
+        }
+
+    async def test_refresh_tokens_success(self, test_client: AsyncClient):
+        """
+        Успешное обновление токенов.
+
+        Сценарий:
+        1. Авторизуемся и получаем refresh_token
+        2. Отправляем запрос на /telegram/refresh с этим токеном
+        3. Получаем новую пару токенов
+        """
+        # Step 1: Авторизация
+        auth_data = self._create_valid_auth_data()
+        auth_response = await test_client.post("/auth/telegram", json=auth_data)
+        assert auth_response.status_code == status.HTTP_200_OK
+
+        auth_body = auth_response.json()
+        old_refresh_token = auth_body["refresh_token"]
+
+        # Step 2: Refresh
+        refresh_data = {
+            "telegram_id": auth_data["telegram_id"],
+            "refresh_token": old_refresh_token,
+        }
+        refresh_response = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+
+        # Step 3: Assert
+        assert refresh_response.status_code == status.HTTP_200_OK
+
+        refresh_body = refresh_response.json()
+        assert "access_token" in refresh_body
+        assert "refresh_token" in refresh_body
+        assert "expires_in" in refresh_body
+        # Новый refresh_token должен отличаться от старого
+        assert refresh_body["refresh_token"] != old_refresh_token
+
+    async def test_refresh_tokens_invalid_token(self, test_client: AsyncClient):
+        """
+        Refresh с несуществующим токеном должен вернуть 404.
+
+        Это защищает от:
+        - Подбора токенов
+        - Использования отозванных токенов
+        - Повторного использования уже обновлённых токенов
+        """
+        refresh_data = {
+            "telegram_id": 123456,
+            "refresh_token": "nonexistent_token_that_does_not_exist_in_db",
+        }
+
+        response = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    async def test_refresh_tokens_missing_fields(self, test_client: AsyncClient):
+        """
+        Запрос без обязательных полей должен вернуть 422.
+        """
+        response = await test_client.post("/auth/telegram/refresh", json={})
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    async def test_refresh_tokens_partial_fields(self, test_client: AsyncClient):
+        """
+        Запрос с частичными данными должен вернуть 422.
+        """
+        refresh_data = {
+            "telegram_id": 123456,
+            # Нет refresh_token
+        }
+
+        response = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    async def test_refresh_tokens_invalidates_old_token(self, test_client: AsyncClient):
+        """
+        После refresh старый токен должен стать невалидным.
+
+        Это важно для безопасности — каждый refresh_token можно использовать
+        только один раз (rotation).
+        """
+        # Авторизация
+        auth_data = self._create_valid_auth_data()
+        auth_response = await test_client.post("/auth/telegram", json=auth_data)
+        old_refresh_token = auth_response.json()["refresh_token"]
+
+        # Первый refresh — успешный
+        refresh_data = {
+            "telegram_id": auth_data["telegram_id"],
+            "refresh_token": old_refresh_token,
+        }
+        first_refresh = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+        assert first_refresh.status_code == status.HTTP_200_OK
+
+        # Второй refresh со старым токеном — должен вернуть 404
+        second_refresh = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+        assert second_refresh.status_code == status.HTTP_404_NOT_FOUND
+
+    async def test_refresh_tokens_chain(self, test_client: AsyncClient):
+        """
+        Проверяем цепочку refresh'ов.
+
+        Каждый новый refresh_token должен работать для следующего обновления.
+        """
+        # Авторизация
+        auth_data = self._create_valid_auth_data()
+        auth_response = await test_client.post("/auth/telegram", json=auth_data)
+        current_refresh_token = auth_response.json()["refresh_token"]
+
+        # Делаем 3 последовательных refresh
+        for i in range(3):
+            refresh_data = {
+                "telegram_id": auth_data["telegram_id"],
+                "refresh_token": current_refresh_token,
+            }
+            response = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+            assert response.status_code == status.HTTP_200_OK, f"Refresh #{i + 1} failed"
+
+            # Обновляем токен для следующей итерации
+            current_refresh_token = response.json()["refresh_token"]
+
+    async def test_refresh_tokens_response_schema(self, test_client: AsyncClient):
+        """
+        Проверяем, что ответ соответствует схеме TokenPair.
+        """
+        # Авторизация
+        auth_data = self._create_valid_auth_data()
+        auth_response = await test_client.post("/auth/telegram", json=auth_data)
+        refresh_token = auth_response.json()["refresh_token"]
+
+        # Refresh
+        refresh_data = {
+            "telegram_id": auth_data["telegram_id"],
+            "refresh_token": refresh_token,
+        }
+        response = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+        body = response.json()
+
+        # Проверяем типы
+        assert isinstance(body["access_token"], str)
+        assert isinstance(body["refresh_token"], str)
+        assert isinstance(body["expires_in"], int)
+        assert isinstance(body["token_type"], str)
+
+        # Проверяем структуру
+        expected_keys = {"access_token", "refresh_token", "expires_in", "token_type"}
+        assert set(body.keys()) == expected_keys
+
+        # Проверяем значения
+        assert body["token_type"] == "bearer"
+        assert body["expires_in"] > 0
+
+    async def test_refresh_tokens_updates_db(
+        self, test_client: AsyncClient, test_session: AsyncSession
+    ):
+        """
+        Проверяем, что токен обновляется в БД.
+        """
+        # Авторизация
+        auth_data = self._create_valid_auth_data()
+        auth_response = await test_client.post("/auth/telegram", json=auth_data)
+        old_refresh_token = auth_response.json()["refresh_token"]
+
+        # Refresh
+        refresh_data = {
+            "telegram_id": auth_data["telegram_id"],
+            "refresh_token": old_refresh_token,
+        }
+        response = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+        new_refresh_token = response.json()["refresh_token"]
+
+        # Проверяем БД
+        refresh_repo = RefreshTokenRepository(test_session)
+
+        # Старый токен не найден
+        old_in_db = await refresh_repo.get_one(token_hash=old_refresh_token)
+        assert old_in_db is None
+
+        # Новый токен записан
+        new_in_db = await refresh_repo.get_one(token_hash=new_refresh_token)
+        assert new_in_db is not None

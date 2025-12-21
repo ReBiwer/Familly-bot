@@ -9,15 +9,15 @@ import hashlib
 import hmac
 import os
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.schemas import TelegramAuthRequest
+from src.schemas import RefreshTelegramRequest, TelegramAuthRequest
 from src.settings import app_settings
-from src.use_cases import AuthTelegramUseCase
+from src.use_cases import AuthTelegramUseCase, RefreshTokensTelegramUseCase
 
 # Устанавливаем тестовые переменные окружения ДО импорта settings
 # Это нужно, чтобы AppSettings не падал при загрузке
@@ -267,3 +267,90 @@ def sample_telegram_auth_request() -> TelegramAuthRequest:
         telegram_id=1111,
         hash_str=hmac_hash_str,
     )
+
+
+# =============================================================================
+# Фикстуры для RefreshTokensTelegramUseCase
+# =============================================================================
+
+
+@pytest.fixture()
+def refresh_tokens_use_case(
+    user_repo: UserRepository, refresh_token_repo: RefreshTokenRepository
+) -> RefreshTokensTelegramUseCase:
+    """
+    Use case для обновления токенов.
+
+    Почему отдельная фикстура:
+    - Тот же паттерн, что и auth_telegram_use_case
+    - Внедряем те же репозитории, но другой use case
+    """
+    return RefreshTokensTelegramUseCase(user_repo, refresh_token_repo)
+
+
+@pytest.fixture()
+def sample_refresh_request_factory(
+    sample_user: UserModel,
+) -> Callable[[str], RefreshTelegramRequest]:
+    """
+    Фабрика для создания RefreshTelegramRequest.
+
+    Почему фабрика:
+    - refresh_token каждый раз разный (генерируется при авторизации)
+    - Нужно передавать актуальный токен из БД
+
+    Пример:
+        request = sample_refresh_request_factory("actual_token_from_db")
+    """
+
+    def _create(refresh_token: str) -> RefreshTelegramRequest:
+        return RefreshTelegramRequest(
+            telegram_id=sample_user.telegram_id,
+            refresh_token=refresh_token,
+        )
+
+    return _create
+
+
+@pytest.fixture()
+def refresh_token_in_db_factory(
+    refresh_token_repo: RefreshTokenRepository,
+    sample_user: UserModel,
+) -> Callable[..., Awaitable[tuple[str, RefreshTokenModel]]]:
+    """
+    Фабрика для создания refresh_token в БД.
+
+    Возвращает tuple (token_hash, token_record), чтобы тест мог использовать оба.
+
+    Почему фабрика, а не простая фикстура:
+    - Можно настраивать expires_at (например, для теста продления срока)
+    - Некоторым тестам нужен token_record.id для проверки
+
+    Пример:
+        # С дефолтными параметрами (expires через 30 дней)
+        token_hash, token_record = await refresh_token_in_db_factory()
+
+        # С кастомным сроком
+        token_hash, token_record = await refresh_token_in_db_factory(
+            expires_at=datetime.now(UTC) + timedelta(days=1)
+        )
+    """
+
+    async def _create(
+        expires_at: datetime | None = None,
+        device_info: str = "telegram",
+    ) -> tuple[str, RefreshTokenModel]:
+        token_hash = create_refresh_token()
+
+        if expires_at is None:
+            expires_at = datetime.now(UTC) + timedelta(days=30)
+
+        token_record = await refresh_token_repo.create(
+            token_hash=token_hash,
+            user_id=sample_user.id,
+            expires_at=expires_at,
+            device_info=device_info,
+        )
+        return token_hash, token_record
+
+    return _create
