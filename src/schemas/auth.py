@@ -29,6 +29,10 @@ class TelegramAuthRequest(BaseModel):
             f"telegram_id={self.telegram_id}"
         )
 
+class RefreshTelegramRequest(BaseModel):
+    telegram_id: int
+    refresh_token: str
+
 
 class TokenPair(BaseModel):
     """Пара access и refresh токенов"""
