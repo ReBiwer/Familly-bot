@@ -22,7 +22,7 @@ from src.db.repositories import RefreshTokenRepository, UserRepository
 from src.services.ai import AIService
 from src.services.prompts import PromptService
 from src.settings import app_settings
-from src.use_cases import AuthTelegramUseCase
+from src.use_cases import AuthTelegramUseCase, RefreshTokensTelegramUseCase
 
 
 class ServicesProvider(Provider):
@@ -154,3 +154,9 @@ class UseCasesProvider(Provider):
         self, user_repo: UserRepository, refresh_token_repo: RefreshTokenRepository
     ) -> AuthTelegramUseCase:
         return AuthTelegramUseCase(user_repo, refresh_token_repo)
+
+    @provide(scope=Scope.REQUEST)
+    def get_refresh_tokens_telegram_use_case(
+        self, user_repo: UserRepository, refresh_token_repo: RefreshTokenRepository
+    ) -> RefreshTokensTelegramUseCase:
+        return RefreshTokensTelegramUseCase(user_repo, refresh_token_repo)
