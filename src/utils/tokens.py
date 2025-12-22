@@ -10,13 +10,18 @@ from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 
+from src.di.dependencies import ScopesPermissions
 from src.schemas import TokenPayload
 from src.settings import app_settings
 
 logger = logging.getLogger(__name__)
 
 
-def create_access_token(telegram_id: int, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    telegram_id: int,
+    expires_delta: timedelta | None = None,
+    scopes_permissions: list[str] = ScopesPermissions.default_scopes,
+) -> str:
     """
     Создаёт JWT access token.
 
@@ -39,10 +44,7 @@ def create_access_token(telegram_id: int, expires_delta: timedelta | None = None
 
     expire = datetime.now(UTC) + expires_delta
 
-    payload = {
-        "sub": str(telegram_id),
-        "exp": expire,
-    }
+    payload = {"sub": str(telegram_id), "exp": expire, "scopes": scopes_permissions}
 
     return jwt.encode(
         payload,
