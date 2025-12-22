@@ -61,7 +61,7 @@ async def get_current_telegram_id(
         telegram_id = int(payload.sub)
         token_scopes = payload.scopes
 
-        if ScopesPermissions.ADMIN in token_scopes:
+        if ScopesPermissions.ADMIN.value in token_scopes:
             return telegram_id
 
         for required_scope in security_scopes.scopes:
