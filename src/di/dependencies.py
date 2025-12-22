@@ -10,41 +10,80 @@
 - Но используем чистый FastAPI Depends (без Dishka), т.к. проверка токена не требует контейнера
 """
 
+from enum import Enum
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Security, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, SecurityScopes
 
 from src.utils import verify_token
 
-# HTTPBearer — схема авторизации для Swagger UI
-# auto_error=True: если заголовок отсутствует — сразу 403
 security = HTTPBearer(auto_error=True)
 
 
-async def get_current_user_id(
+class ScopesPermissions(str, Enum):
+    USERS_READ = "users:read"
+    USERS_WRITE = "users:write"
+    ADMIN = "admin"
+    AI_USE = "ai:use"
+
+    @property
+    def default_scopes(self) -> list[str]:
+        return [self.USERS_READ, self.USERS_WRITE]
+
+
+async def get_current_telegram_id(
+    security_scopes: SecurityScopes,
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
 ) -> int:
     """
-    Достаёт telegram_id из JWT access_token.
+    Проверяет JWT токен и требуемые scopes.
 
-    Шаги:
-    1. HTTPBearer вытаскивает токен из Authorization: Bearer <token>
-    2. verify_token проверяет подпись/срок
-    3. Возвращаем telegram_id (payload.sub)
+    Как работает:
+    1. HTTPBearer парсит заголовок Authorization: Bearer <token>
+    2. credentials.credentials содержит сам токен
+    3. security_scopes.scopes содержит список требуемых scopes из эндпоинта
+    4. Проверяем токен и извлекаем scopes из payload
+    5. Сравниваем: есть ли у пользователя все требуемые scopes
+
+    Args:
+        security_scopes: Автоматически создаётся FastAPI, содержит требуемые scopes
+        credentials: Данные из заголовка Authorization
+
+    Returns:
+        tuple[telegram_id, user_scopes]
+
+    Raises:
+        HTTPException 401: Токен невалидный или истёк
+        HTTPException 403: Не хватает прав (scopes)
     """
     token = credentials.credentials
-
     payload = verify_token(token)
+    authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": authenticate_value},
         )
 
     try:
-        return int(payload.sub)
+        telegram_id = int(payload.sub)
+        token_scopes = payload.scopes
+
+        if ScopesPermissions.ADMIN in token_scopes:
+            return telegram_id
+
+        for required_scope in security_scopes.scopes:
+            if required_scope not in token_scopes:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Not enough permissions. Required: {security_scopes.scopes}, Have: {token_scopes}",
+                    headers={"WWW-Authenticate": authenticate_value},
+                )
+        return telegram_id
+
     except (ValueError, TypeError) as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -53,5 +92,4 @@ async def get_current_user_id(
         ) from err
 
 
-# Упрощённый алиас для сигнатур эндпоинтов
-CurrentUserTelegramId = Annotated[int, Depends(get_current_user_id)]
+CurrentUserTelegramId = Annotated[int, Security(get_current_telegram_id)]
