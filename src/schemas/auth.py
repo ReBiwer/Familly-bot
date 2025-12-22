@@ -29,6 +29,7 @@ class TelegramAuthRequest(BaseModel):
             f"telegram_id={self.telegram_id}"
         )
 
+
 class RefreshTelegramRequest(BaseModel):
     telegram_id: int
     refresh_token: str
@@ -48,3 +49,4 @@ class TokenPayload(BaseModel):
 
     sub: str  # Subject — telegram_id
     exp: datetime  # Expiration time
+    scopes: list[str]
