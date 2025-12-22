@@ -11,6 +11,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, HTTPException, status
 
 from src.db.repositories import UserRepository
+from src.di import CurrentUserTelegramId
 from src.schemas import UserCreate, UserRead, UserUpdate
 
 router = APIRouter(
@@ -20,6 +21,44 @@ router = APIRouter(
 )
 
 logger = logging.getLogger(__name__)
+
+
+@router.get("/me", response_model=UserRead)
+async def get_current_user_info(
+    telegram_id: CurrentUserTelegramId,
+    user_repo: FromDishka[UserRepository],
+) -> UserRead:
+    """
+    Получение информации о текущем авторизованном пользователе.
+
+    Этот эндпоинт защищён — требует валидный JWT токен в заголовке:
+    ```
+    Authorization: Bearer <access_token>
+    ```
+
+    Как работает:
+    1. FastAPI видит зависимость `CurrentUserTelegramId`
+    2. Вызывает `get_current_user_id` dependency
+    3. Dependency проверяет токен и возвращает telegram_id
+    4. Если токен невалиден — возвращает 401
+    5. Загружаем пользователя из БД по telegram_id
+    6. Возвращаем данные пользователя
+
+    Returns:
+        Данные текущего пользователя
+
+    Raises:
+        HTTPException 401: Если токен невалиден
+        HTTPException 404: Если пользователь не найден
+    """
+    user = await user_repo.get_by_telegram_id(telegram_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    return UserRead.model_validate(user)
+
 
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
