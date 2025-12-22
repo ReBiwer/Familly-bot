@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 
-from src.di.dependencies import ScopesPermissions
+from src.constants import ScopesPermissions, DEFAULT_SCOPES
 from src.schemas import TokenPayload
 from src.settings import app_settings
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def create_access_token(
     telegram_id: int,
     expires_delta: timedelta | None = None,
-    scopes_permissions: list[str] = ScopesPermissions.default_scopes,
+    scopes_permissions: list[str] | None = None,
 ) -> str:
     """
     Создаёт JWT access token.
@@ -28,6 +28,7 @@ def create_access_token(
     Args:
         telegram_id: ID пользователя в Telegram
         expires_delta: Время жизни токена (по умолчанию 7 дней)
+        scopes_permissions: Доступы пользователя
 
     Returns:
         Закодированный JWT токен
@@ -41,6 +42,9 @@ def create_access_token(
     """
     if expires_delta is None:
         expires_delta = timedelta(days=7)
+
+    if scopes_permissions is None:
+        scopes_permissions = DEFAULT_SCOPES.copy()
 
     expire = datetime.now(UTC) + expires_delta
 

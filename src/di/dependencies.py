@@ -10,26 +10,15 @@
 - Но используем чистый FastAPI Depends (без Dishka), т.к. проверка токена не требует контейнера
 """
 
-from enum import Enum
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, SecurityScopes
 
+from src.constants import ScopesPermissions
 from src.utils import verify_token
 
 security = HTTPBearer(auto_error=True)
-
-
-class ScopesPermissions(str, Enum):
-    USERS_READ = "users:read"
-    USERS_WRITE = "users:write"
-    ADMIN = "admin"
-    AI_USE = "ai:use"
-
-    @property
-    def default_scopes(self) -> list[str]:
-        return [self.USERS_READ, self.USERS_WRITE]
 
 
 async def get_current_telegram_id(
