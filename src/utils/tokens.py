@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 
-from src.constants import ScopesPermissions, DEFAULT_SCOPES
+from src.constants import DEFAULT_SCOPES
 from src.schemas import TokenPayload
 from src.settings import app_settings
 
