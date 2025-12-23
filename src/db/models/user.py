@@ -13,3 +13,5 @@ class UserModel(BaseModel):
     phone: Mapped[str | None]
     email: Mapped[str | None]
     telegram_id: Mapped[int | None] = mapped_column(Integer, unique=True, index=True, nullable=True)
+
+    role: Mapped[str] = mapped_column(default="member", nullable=False)
