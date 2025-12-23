@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class UserTole(str, Enum):
+class UserRole(str, Enum):
     ADMIN = "admin"
     MEMBER = "member"
     CHILD = "child"
@@ -15,21 +15,21 @@ class ScopesPermissions(str, Enum):
     AI_USE = "ai:use"
 
 
-ROLE_SCOPES_MAP: dict[UserTole, list[str]] = {
-    UserTole.ADMIN: [
+ROLE_SCOPES_MAP: dict[UserRole, list[str]] = {
+    UserRole.ADMIN: [
         ScopesPermissions.ADMIN.value,
     ],
-    UserTole.MEMBER: [
+    UserRole.MEMBER: [
         ScopesPermissions.USERS_READ.value,
         ScopesPermissions.USERS_WRITE.value,
         ScopesPermissions.USERS_DELETE.value,
         ScopesPermissions.AI_USE.value,
     ],
-    UserTole.CHILD: [ScopesPermissions.USERS_READ.value, ScopesPermissions.AI_USE.value],
+    UserRole.CHILD: [ScopesPermissions.USERS_READ.value, ScopesPermissions.AI_USE.value],
 }
 
 
-DEFAULT_SCOPES: list[str] = ROLE_SCOPES_MAP.get(UserTole.MEMBER)
+DEFAULT_SCOPES: list[str] = ROLE_SCOPES_MAP.get(UserRole.MEMBER)
 
 
 MEMBER_FAMILLY_SCOPE = [
