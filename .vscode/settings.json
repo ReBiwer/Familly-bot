@@ -1,14 +1,48 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-  "python.formatting.provider": "none",
-  "ruff.configurationPreference": "filesystemFirst",
-  "ruff.logLevel": "warn",
+  // ===== Ruff Configuration =====
+  // Включить ruff как основной линтер для Python
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.ruff": "explicit",
-      "source.organizeImports.ruff": "explicit"
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
     }
-  }
+  },
+
+  // Настройки ruff расширения
+  "ruff.enable": true,
+  "ruff.lint.enable": true,
+  "ruff.format.enable": true,
+
+  // Путь к конфигурационному файлу (автоматически найдет pyproject.toml)
+  "ruff.configurationPreference": "filesystemFirst",
+
+  // Путь к исполняемому файлу ruff
+  // Если используете uv, то ruff будет из виртуального окружения
+  "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+
+  // Показывать ошибки и предупреждения
+  "ruff.showNotifications": "onError",
+
+  // Импорты будут организованы через ruff (isort rules)
+  "ruff.organizeImports": true,
+
+  // Отключить другие линтеры, чтобы не было конфликтов
+  "python.linting.enabled": false,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": false,
+
+  // Указать интерпретатор Python из виртуального окружения
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+
+  // Дополнительные настройки для Python
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+
+  // Настройки редактора
+  "editor.rulers": [100],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true
 }

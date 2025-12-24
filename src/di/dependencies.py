@@ -40,7 +40,7 @@ async def get_current_telegram_id(
         credentials: Данные из заголовка Authorization
 
     Returns:
-        tuple[telegram_id, user_scopes]
+        telegram_id
 
     Raises:
         HTTPException 401: Токен невалидный или истёк

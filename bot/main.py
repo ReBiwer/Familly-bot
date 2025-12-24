@@ -7,8 +7,6 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
 from bot.common import setup_logging
-from bot.di import init_di_containers
-from bot.middlewares import AuthMiddleware
 from bot.routers import main_router
 from bot.settings import bot_settings
 
@@ -45,8 +43,6 @@ async def run_bot():
     await bot.delete_webhook()
 
     dp.include_router(main_router)
-    dp.message.middleware(AuthMiddleware())
-    init_di_containers(dp)
 
     await set_commands(bot)
 
