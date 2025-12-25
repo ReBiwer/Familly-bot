@@ -16,7 +16,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, SecurityScopes
 
-from src.constants import ScopesPermissions
+from src.constants import ScopesPermissions, MEMBER_FAMILLY_SCOPE
 from src.utils import verify_token
 
 security = HTTPBearer(auto_error=True)
@@ -98,4 +98,5 @@ async def get_current_telegram_id(
         ) from err
 
 
-CurrentUserTelegramId = Annotated[int, Security(get_current_telegram_id)]
+CurrentUserTelegramId = Annotated[int, Security(get_current_telegram_id, scopes=MEMBER_FAMILLY_SCOPE)]
+CurrentAdminTelegramId = Annotated[int, Security(get_current_telegram_id, scopes=[ScopesPermissions.ADMIN.value])]

@@ -15,11 +15,12 @@ from dishka import AsyncContainer, make_async_container
 from dishka.integrations.fastapi import setup_dishka as fastapi_setup
 from fastapi import FastAPI
 
-from src.di.dependencies import CurrentUserTelegramId
+from src.di.dependencies import CurrentUserTelegramId, CurrentAdminTelegramId
 from src.di.providers import DatabaseProvider, ServicesProvider, UseCasesProvider
 
 __all__ = [
     "CurrentUserTelegramId",
+    "CurrentAdminTelegramId",
 ]
 
 
