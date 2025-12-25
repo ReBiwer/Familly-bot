@@ -11,7 +11,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, HTTPException, status
 
 from src.db.repositories import UserRepository
-from src.di import CurrentUserTelegramId
+from src.di import CurrentUserTelegramId, CurrentAdminTelegramId
 from src.schemas import UserCreate, UserRead, UserUpdate
 
 router = APIRouter(
@@ -62,6 +62,7 @@ async def get_current_user_info(
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def create_user(
+    telegram_id: CurrentAdminTelegramId,
     data: UserCreate,
     user_repo: FromDishka[UserRepository],
 ) -> UserRead:
@@ -97,6 +98,7 @@ async def create_user(
 
 @router.get("/{user_id}", response_model=UserRead)
 async def get_user(
+    telegram_id: CurrentAdminTelegramId,
     user_id: int,
     user_repo: FromDishka[UserRepository],
 ) -> UserRead:
@@ -126,14 +128,15 @@ async def get_user(
 
 @router.get("/telegram/{telegram_id}", response_model=UserRead)
 async def get_user_by_telegram(
-    telegram_id: int,
+    telegram_id: CurrentAdminTelegramId,
+    user_telegram_id: int,
     user_repo: FromDishka[UserRepository],
 ) -> UserRead:
     """
     Получение пользователя по Telegram ID.
 
     Args:
-        telegram_id: ID пользователя в Telegram
+        user_telegram_id: ID пользователя в Telegram
         user_repo: Репозиторий пользователей
 
     Returns:
@@ -142,12 +145,12 @@ async def get_user_by_telegram(
     Raises:
         HTTPException 404 если пользователь не найден
     """
-    user = await user_repo.get_by_telegram_id(telegram_id)
+    user = await user_repo.get_by_telegram_id(user_telegram_id)
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with telegram_id={telegram_id} not found",
+            detail=f"User with telegram_id={user_telegram_id} not found",
         )
 
     return UserRead.model_validate(user)
@@ -155,6 +158,7 @@ async def get_user_by_telegram(
 
 @router.patch("/{user_id}", response_model=UserRead)
 async def update_user(
+    telegram_id: CurrentAdminTelegramId,
     user_id: int,
     data: UserUpdate,
     user_repo: FromDishka[UserRepository],
@@ -201,6 +205,7 @@ async def update_user(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
+    telegram_id: CurrentAdminTelegramId,
     user_id: int,
     user_repo: FromDishka[UserRepository],
 ) -> None:
@@ -227,7 +232,8 @@ async def delete_user(
 
 @router.post("/telegram/{telegram_id}/register", response_model=UserRead)
 async def register_or_get_user(
-    telegram_id: int,
+    telegram_id: CurrentAdminTelegramId,
+    user_telegram_id: int,
     data: UserCreate,
     user_repo: FromDishka[UserRepository],
 ) -> UserRead:
@@ -239,7 +245,7 @@ async def register_or_get_user(
     - Если нет — создаёт нового
 
     Args:
-        telegram_id: ID пользователя в Telegram
+        user_telegram_id: ID пользователя в Telegram
         data: Данные для создания (если пользователь новый)
         user_repo: Репозиторий пользователей
 
@@ -247,13 +253,13 @@ async def register_or_get_user(
         Пользователь (новый или существующий)
     """
     user, created = await user_repo.get_or_create_by_telegram(
-        telegram_id=telegram_id,
+        telegram_id=user_telegram_id,
         **data.model_dump(exclude={"telegram_id"}),
     )
 
     if created:
-        logger.info("New user registered: telegram_id=%s", telegram_id)
+        logger.info("New user registered: telegram_id=%s", user_telegram_id)
     else:
-        logger.info("Existing user found: telegram_id=%s", telegram_id)
+        logger.info("Existing user found: telegram_id=%s", user_telegram_id)
 
     return UserRead.model_validate(user)
