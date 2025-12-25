@@ -1,45 +1,44 @@
 {
     "version": "0.2.0",
     "configurations": [
-      {
-        "name": "Run current file",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${file}",
-        "cwd": "/home/vladimir/Projects/AI-HR",
-        "python": "/home/vladimir/Projects/AI-HR/.venv/bin/python",
-        "env": {
-          "PYTHONPATH": "/home/vladimir/Projects/AI-HR"
+        {
+            "name": "Run current file",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": true
         },
-        "console": "integratedTerminal",
-        "justMyCode": true
-      },
-      {
-        "name": "Run telegram",
-        "type": "debugpy",
-        "request": "launch",
-        "module": "source.main",
-        "cwd": "/home/vladimir/Projects/AI-HR",
-        "python": "/home/vladimir/Projects/AI-HR/.venv/bin/python",
-        "env": {
-          "PYTHONPATH": "/home/vladimir/Projects/AI-HR"
+        {
+            "name": "Run Bot",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bot.main",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": true
         },
-        "console": "integratedTerminal",
-        "justMyCode": true
-      },
-      {
-        "name": "Run web",
-        "args": ["--type-app=web"],
-        "type": "debugpy",
-        "request": "launch",
-        "module": "source.main",
-        "cwd": "/home/vladimir/Projects/AI-HR",
-        "python": "/home/vladimir/Projects/AI-HR/.venv/bin/python",
-        "env": {
-          "PYTHONPATH": "/home/vladimir/Projects/AI-HR"
-        },
-        "console": "integratedTerminal",
-        "justMyCode": true
-      }
+        {
+            "name": "Run Web API",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.main",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
     ]
-  }
+}
