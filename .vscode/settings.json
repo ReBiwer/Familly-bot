@@ -22,8 +22,6 @@
   // Если используете uv, то ruff будет из виртуального окружения
   "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
 
-  // Показывать ошибки и предупреждения
-  "ruff.showNotifications": "onError",
 
   // Импорты будут организованы через ruff (isort rules)
   "ruff.organizeImports": true,
