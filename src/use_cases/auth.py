@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import logging
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
@@ -8,7 +9,9 @@ from src.db.models import RefreshTokenModel
 from src.db.repositories import RefreshTokenRepository, UserRepository
 from src.schemas import RefreshTelegramRequest, TelegramAuthRequest, TokenPair
 from src.settings import app_settings
-from src.utils import create_access_token, create_refresh_token
+from src.utils import create_access_token, create_refresh_token, get_scopes_for_user
+
+logger = logging.getLogger(__name__)
 
 
 class AuthTelegramUseCase:
@@ -25,18 +28,22 @@ class AuthTelegramUseCase:
         if signature != request.hash_str:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
-        expires_delta = timedelta(days=7)
-        access_token = create_access_token(
-            telegram_id=request.telegram_id,
-            expires_delta=expires_delta,
-        )
-
         user, _ = await self._user_repo.get_or_create_by_telegram(
             telegram_id=request.telegram_id,
             name=request.name,
             mid_name=request.mid_name,
             last_name=request.last_name,
         )
+
+        scopes = get_scopes_for_user(user)
+
+        expires_delta = timedelta(days=7)
+        access_token = create_access_token(
+            telegram_id=request.telegram_id,
+            expires_delta=expires_delta,
+            scopes_permissions=scopes,
+        )
+
         refresh_token = create_refresh_token()
         refresh_expires_at = datetime.now(UTC) + timedelta(days=30)
         await self._refresh_token_repo.create(
@@ -64,11 +71,20 @@ class RefreshTokensTelegramUseCase:
         if exist is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
+        user = await self._user_repo.get_by_telegram_id(request.telegram_id)
+        if not user:
+            logger.warning("User %s not found", request.telegram_id)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User {request.telegram_id} not found",
+            )
+        scopes = get_scopes_for_user(user)
+
         expires_delta = timedelta(days=7)
         access_token = create_access_token(
-            telegram_id=request.telegram_id,
-            expires_delta=expires_delta,
+            telegram_id=request.telegram_id, expires_delta=expires_delta, scopes_permissions=scopes
         )
+
         new_refresh_token = create_refresh_token()
         new_refresh_expires_at = datetime.now(UTC) + timedelta(days=30)
         await self._refresh_token_repo.update(
