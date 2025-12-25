@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from src.schemas import ChatRequest, ChatResponse
 from src.services.ai import AIService
+from src.di import CurrentUserTelegramId
 
 router = APIRouter(
     prefix="/ai",
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
+    telegram_id: CurrentUserTelegramId,
     request: ChatRequest,
     ai_service: FromDishka[AIService],
 ) -> ChatResponse:
