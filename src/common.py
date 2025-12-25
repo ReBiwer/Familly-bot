@@ -2,7 +2,7 @@ import logging
 import logging.config
 from pathlib import Path
 
-PATH_LOGS = f"{Path(__file__).resolve().parent.parent}/logs"
+PATH_LOGS = f"{Path(__file__).resolve().parent}/logs"
 
 
 def setup_logging(root_log_level: str | int = logging.INFO, log_dir: str = PATH_LOGS):
