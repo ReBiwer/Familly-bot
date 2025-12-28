@@ -29,13 +29,4 @@ ROLE_SCOPES_MAP: dict[UserRole, list[str]] = {
 }
 
 
-DEFAULT_SCOPES: list[str] = ROLE_SCOPES_MAP.get(UserRole.MEMBER)
-
-
-MEMBER_FAMILLY_SCOPE = [
-    ScopesPermissions.USERS_WRITE.value,
-    ScopesPermissions.USERS_READ.value,
-    ScopesPermissions.AI_USE.value,
-]
-
-CHILD_SCOPES = [ScopesPermissions.AI_USE.value]
+DEFAULT_SCOPES: list[str] = ROLE_SCOPES_MAP.get(UserRole.MEMBER).copy()
