@@ -172,6 +172,7 @@ async def sample_user(user_repo: UserRepository) -> UserModel:
         last_name="Тестов",
         telegram_id=100500,
         email="test@example.com",
+        role="member",
     )
 
 
