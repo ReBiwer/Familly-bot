@@ -22,10 +22,12 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.api import auth_router
+from src.constants import ROLE_SCOPES_MAP, ScopesPermissions, UserRole
 from src.db.models import BaseModel
 from src.db.repositories import RefreshTokenRepository, UserRepository
 from src.settings import app_settings
 from src.use_cases import AuthTelegramUseCase, RefreshTokensTelegramUseCase
+from src.utils import verify_token
 
 
 class MockDatabaseProvider(Provider):
@@ -541,3 +543,234 @@ class TestRefreshTelegramEndpoint:
         # Новый токен записан
         new_in_db = await refresh_repo.get_one(token_hash=new_refresh_token)
         assert new_in_db is not None
+
+
+# =============================================================================
+# E2E тесты с проверкой scopes в токенах
+# =============================================================================
+
+
+class TestAuthTelegramWithScopes:
+    """
+    E2E тесты проверяют что токены содержат правильные scopes
+    в зависимости от роли пользователя.
+    """
+
+    def _create_valid_request_data(self) -> dict:
+        """Создаёт валидные данные для запроса."""
+        name = "Владимир"
+        mid_name = "Николаевич"
+        last_name = "Быков"
+        telegram_id = 123456
+
+        msg = f"name={name}\nmid_name={mid_name}\nlast_name={last_name}\ntelegram_id={telegram_id}"
+        hash_str = hmac.new(
+            key=app_settings.FRONT.BOT_TOKEN.encode(),
+            msg=msg.encode(),
+            digestmod=hashlib.sha256,
+        ).hexdigest()
+
+        return {
+            "name": name,
+            "mid_name": mid_name,
+            "last_name": last_name,
+            "telegram_id": telegram_id,
+            "hash_str": hash_str,
+        }
+
+    async def test_auth_telegram_token_contains_member_scopes(self, test_client: AsyncClient):
+        """
+        Новый пользователь получает токен со scopes для роли member.
+        """
+        data = self._create_valid_request_data()
+
+        response = await test_client.post("/auth/telegram", json=data)
+        assert response.status_code == status.HTTP_200_OK
+
+        # Декодируем access_token и проверяем scopes
+        body = response.json()
+        payload = verify_token(body["access_token"])
+
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.MEMBER]
+        assert ScopesPermissions.USERS_READ.value in payload.scopes
+        assert ScopesPermissions.USERS_WRITE.value in payload.scopes
+
+    async def test_auth_telegram_admin_user_gets_admin_scope(
+        self, test_client: AsyncClient, test_session: AsyncSession
+    ):
+        """
+        Пользователь с ролью admin получает admin scope в токене.
+        """
+        data = self._create_valid_request_data()
+
+        # Предварительно создаём пользователя с ролью admin
+        user_repo = UserRepository(test_session)
+        await user_repo.create(
+            name=data["name"],
+            mid_name=data["mid_name"],
+            last_name=data["last_name"],
+            telegram_id=data["telegram_id"],
+            role="admin",
+        )
+
+        # Авторизуемся
+        response = await test_client.post("/auth/telegram", json=data)
+        assert response.status_code == status.HTTP_200_OK
+
+        # Проверяем scopes
+        body = response.json()
+        payload = verify_token(body["access_token"])
+
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.ADMIN]
+        assert ScopesPermissions.ADMIN.value in payload.scopes
+
+    async def test_auth_telegram_child_user_gets_limited_scopes(
+        self, test_client: AsyncClient, test_session: AsyncSession
+    ):
+        """
+        Пользователь с ролью child получает ограниченный набор scopes.
+        """
+        data = self._create_valid_request_data()
+
+        # Создаём пользователя с ролью child
+        user_repo = UserRepository(test_session)
+        await user_repo.create(
+            name=data["name"],
+            mid_name=data["mid_name"],
+            last_name=data["last_name"],
+            telegram_id=data["telegram_id"],
+            role="child",
+        )
+
+        # Авторизуемся
+        response = await test_client.post("/auth/telegram", json=data)
+        assert response.status_code == status.HTTP_200_OK
+
+        # Проверяем scopes
+        body = response.json()
+        payload = verify_token(body["access_token"])
+
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.CHILD]
+        # У child не должно быть прав на удаление
+        assert ScopesPermissions.USERS_DELETE.value not in payload.scopes
+        assert ScopesPermissions.ADMIN.value not in payload.scopes
+
+
+class TestRefreshTelegramWithScopes:
+    """
+    E2E тесты проверяют что при refresh токена scopes обновляются
+    в соответствии с текущей ролью.
+    """
+
+    def _create_valid_auth_data(self) -> dict:
+        """Создаёт валидные данные для первичной авторизации."""
+        name = "Владимир"
+        mid_name = "Николаевич"
+        last_name = "Быков"
+        telegram_id = 123456
+
+        msg = f"name={name}\nmid_name={mid_name}\nlast_name={last_name}\ntelegram_id={telegram_id}"
+        hash_str = hmac.new(
+            key=app_settings.FRONT.BOT_TOKEN.encode(),
+            msg=msg.encode(),
+            digestmod=hashlib.sha256,
+        ).hexdigest()
+
+        return {
+            "name": name,
+            "mid_name": mid_name,
+            "last_name": last_name,
+            "telegram_id": telegram_id,
+            "hash_str": hash_str,
+        }
+
+    async def test_refresh_updates_scopes_when_role_changed(
+        self, test_client: AsyncClient, test_session: AsyncSession
+    ):
+        """
+        Если роль изменилась, refresh токена возвращает новые scopes.
+
+        Сценарий:
+        1. Авторизуемся как member
+        2. Меняем роль на admin
+        3. Делаем refresh
+        4. Новый токен содержит admin scopes
+        """
+        # Step 1: Авторизация
+        auth_data = self._create_valid_auth_data()
+        auth_response = await test_client.post("/auth/telegram", json=auth_data)
+        assert auth_response.status_code == status.HTTP_200_OK
+
+        auth_body = auth_response.json()
+        old_refresh_token = auth_body["refresh_token"]
+
+        # Проверяем что изначально scopes для member
+        old_payload = verify_token(auth_body["access_token"])
+        assert old_payload.scopes == ROLE_SCOPES_MAP[UserRole.MEMBER]
+
+        # Step 2: Меняем роль на admin
+        user_repo = UserRepository(test_session)
+        user = await user_repo.get_by_telegram_id(auth_data["telegram_id"])
+        await user_repo.update(user.id, role="admin")
+
+        # Step 3: Refresh
+        refresh_data = {
+            "telegram_id": auth_data["telegram_id"],
+            "refresh_token": old_refresh_token,
+        }
+        refresh_response = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+        assert refresh_response.status_code == status.HTTP_200_OK
+
+        # Step 4: Проверяем что scopes обновились
+        refresh_body = refresh_response.json()
+        new_payload = verify_token(refresh_body["access_token"])
+
+        assert new_payload is not None
+        assert new_payload.scopes == ROLE_SCOPES_MAP[UserRole.ADMIN]
+        assert ScopesPermissions.ADMIN.value in new_payload.scopes
+
+    async def test_refresh_downgrades_scopes_when_role_downgraded(
+        self, test_client: AsyncClient, test_session: AsyncSession
+    ):
+        """
+        Если роль понижена, scopes тоже понижаются.
+
+        Это важно для безопасности - отозвать права можно через смену роли.
+        """
+        # Создаём админа
+        auth_data = self._create_valid_auth_data()
+        user_repo = UserRepository(test_session)
+        await user_repo.create(
+            name=auth_data["name"],
+            mid_name=auth_data["mid_name"],
+            last_name=auth_data["last_name"],
+            telegram_id=auth_data["telegram_id"],
+            role="admin",
+        )
+
+        # Авторизуемся
+        auth_response = await test_client.post("/auth/telegram", json=auth_data)
+        old_refresh_token = auth_response.json()["refresh_token"]
+
+        # Понижаем роль до child
+        user = await user_repo.get_by_telegram_id(auth_data["telegram_id"])
+        await user_repo.update(user.id, role="child")
+
+        # Refresh
+        refresh_data = {
+            "telegram_id": auth_data["telegram_id"],
+            "refresh_token": old_refresh_token,
+        }
+        refresh_response = await test_client.post("/auth/telegram/refresh", json=refresh_data)
+
+        # Проверяем что scopes понизились
+        body = refresh_response.json()
+        payload = verify_token(body["access_token"])
+
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.CHILD]
+        assert ScopesPermissions.ADMIN.value not in payload.scopes
+        assert ScopesPermissions.USERS_DELETE.value not in payload.scopes

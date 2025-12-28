@@ -6,10 +6,12 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from fastapi import HTTPException, status
 
+from src.constants import ROLE_SCOPES_MAP, ScopesPermissions, UserRole
 from src.db.models import RefreshTokenModel, UserModel
 from src.db.repositories import RefreshTokenRepository, UserRepository
 from src.schemas import RefreshTelegramRequest, TelegramAuthRequest, TokenPair
 from src.use_cases import AuthTelegramUseCase, RefreshTokensTelegramUseCase
+from src.utils import verify_token
 
 
 class TestAuthTelegramUseCase:
@@ -217,3 +219,208 @@ class TestRefreshTokensTelegramUseCase:
             new_expires = new_expires.replace(tzinfo=None)
         old_expires = old_expires_at.replace(tzinfo=None)
         assert new_expires > old_expires
+
+
+# =============================================================================
+# Тесты для проверки scopes в токенах
+# =============================================================================
+
+
+class TestAuthTelegramUseCaseWithScopes:
+    """
+    Тесты проверяют что токены создаются с правильными scopes
+    в зависимости от роли пользователя.
+    """
+
+    async def test_auth_creates_token_with_member_scopes_for_new_user(
+        self,
+        auth_telegram_use_case: AuthTelegramUseCase,
+        sample_telegram_auth_request: TelegramAuthRequest,
+    ):
+        """
+        Новый пользователь получает токен со scopes для роли member.
+
+        По умолчанию новые пользователи создаются с ролью 'member'.
+        """
+        # Act
+        tokens = await auth_telegram_use_case(sample_telegram_auth_request)
+
+        # Assert: декодируем токен и проверяем scopes
+        payload = verify_token(tokens.access_token)
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.MEMBER]
+
+    async def test_auth_creates_token_with_admin_scopes(
+        self,
+        user_repo: UserRepository,
+        refresh_token_repo: RefreshTokenRepository,
+        sample_telegram_auth_request: TelegramAuthRequest,
+    ):
+        """
+        Пользователь с ролью admin получает токен с admin scope.
+        """
+        # Arrange: создаём пользователя с ролью admin
+        await user_repo.create(
+            name=sample_telegram_auth_request.name,
+            mid_name=sample_telegram_auth_request.mid_name,
+            last_name=sample_telegram_auth_request.last_name,
+            telegram_id=sample_telegram_auth_request.telegram_id,
+            role="admin",
+        )
+
+        auth_use_case = AuthTelegramUseCase(user_repo, refresh_token_repo)
+
+        # Act
+        tokens = await auth_use_case(sample_telegram_auth_request)
+
+        # Assert
+        payload = verify_token(tokens.access_token)
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.ADMIN]
+        assert ScopesPermissions.ADMIN.value in payload.scopes
+
+    async def test_auth_creates_token_with_child_scopes(
+        self,
+        user_repo: UserRepository,
+        refresh_token_repo: RefreshTokenRepository,
+        sample_telegram_auth_request: TelegramAuthRequest,
+    ):
+        """
+        Пользователь с ролью child получает ограниченный набор scopes.
+        """
+        # Arrange: создаём пользователя с ролью child
+        await user_repo.create(
+            name=sample_telegram_auth_request.name,
+            mid_name=sample_telegram_auth_request.mid_name,
+            last_name=sample_telegram_auth_request.last_name,
+            telegram_id=sample_telegram_auth_request.telegram_id,
+            role="child",
+        )
+
+        auth_use_case = AuthTelegramUseCase(user_repo, refresh_token_repo)
+
+        # Act
+        tokens = await auth_use_case(sample_telegram_auth_request)
+
+        # Assert
+        payload = verify_token(tokens.access_token)
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.CHILD]
+        # У child не должно быть прав на удаление
+        assert ScopesPermissions.USERS_DELETE.value not in payload.scopes
+        assert ScopesPermissions.ADMIN.value not in payload.scopes
+
+
+class TestRefreshTokensUseCaseWithScopes:
+    """
+    Тесты проверяют что при refresh токена scopes обновляются
+    в соответствии с текущей ролью пользователя.
+    """
+
+    async def test_refresh_tokens_updates_scopes_if_role_changed(
+        self,
+        refresh_tokens_use_case: RefreshTokensTelegramUseCase,
+        sample_user: UserModel,
+        user_repo: UserRepository,
+        refresh_token_in_db_factory: Callable[..., Awaitable[tuple[str, RefreshTokenModel]]],
+    ):
+        """
+        Если роль пользователя изменилась, новый токен содержит обновлённые scopes.
+
+        Сценарий:
+        1. Пользователь авторизовался с ролью 'member'
+        2. Админ изменил его роль на 'admin'
+        3. Пользователь делает refresh токена
+        4. Новый токен содержит admin scopes
+        """
+        # Arrange: создаём refresh_token
+        old_token_hash, _ = await refresh_token_in_db_factory()
+
+        # Изменяем роль пользователя на admin
+        await user_repo.update(sample_user.id, role="admin")
+
+        request = RefreshTelegramRequest(
+            telegram_id=sample_user.telegram_id,
+            refresh_token=old_token_hash,
+        )
+
+        # Act: обновляем токены
+        tokens = await refresh_tokens_use_case(request)
+
+        # Assert: новый токен содержит admin scopes
+        payload = verify_token(tokens.access_token)
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.ADMIN]
+        assert ScopesPermissions.ADMIN.value in payload.scopes
+
+    async def test_refresh_tokens_preserves_scopes_if_role_unchanged(
+        self,
+        refresh_tokens_use_case: RefreshTokensTelegramUseCase,
+        sample_user: UserModel,
+        refresh_token_in_db_factory: Callable[..., Awaitable[tuple[str, RefreshTokenModel]]],
+    ):
+        """
+        Если роль не изменилась, scopes остаются прежними.
+        """
+        # Arrange
+        old_token_hash, _ = await refresh_token_in_db_factory()
+
+        request = RefreshTelegramRequest(
+            telegram_id=sample_user.telegram_id,
+            refresh_token=old_token_hash,
+        )
+
+        # Act
+        tokens = await refresh_tokens_use_case(request)
+
+        # Assert: scopes соответствуют роли member (из sample_user)
+        payload = verify_token(tokens.access_token)
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.MEMBER]
+
+    async def test_refresh_tokens_downgrades_scopes_if_role_downgraded(
+        self,
+        user_repo: UserRepository,
+        refresh_token_repo: RefreshTokenRepository,
+        refresh_token_in_db_factory: Callable[..., Awaitable[tuple[str, RefreshTokenModel]]],
+    ):
+        """
+        Если роль понижена (admin → child), scopes тоже понижаются.
+
+        Это важно для безопасности - отозвать права можно через смену роли.
+        """
+        # Arrange: создаём админа
+        admin_user = await user_repo.create(
+            name="Админ",
+            mid_name="Временный",
+            last_name="Админов",
+            telegram_id=999999,
+            role="admin",
+        )
+
+        # Создаём refresh_token для админа
+        old_token_hash = "test_refresh_token_admin"
+        await refresh_token_repo.create(
+            token_hash=old_token_hash,
+            user_id=admin_user.id,
+            expires_at=datetime.now(UTC) + timedelta(days=30),
+            device_info="test",
+        )
+
+        # Понижаем роль до child
+        await user_repo.update(admin_user.id, role="child")
+
+        refresh_use_case = RefreshTokensTelegramUseCase(user_repo, refresh_token_repo)
+        request = RefreshTelegramRequest(
+            telegram_id=admin_user.telegram_id,
+            refresh_token=old_token_hash,
+        )
+
+        # Act
+        tokens = await refresh_use_case(request)
+
+        # Assert: теперь у него child scopes (без admin)
+        payload = verify_token(tokens.access_token)
+        assert payload is not None
+        assert payload.scopes == ROLE_SCOPES_MAP[UserRole.CHILD]
+        assert ScopesPermissions.ADMIN.value not in payload.scopes
