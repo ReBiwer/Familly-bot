@@ -34,8 +34,8 @@ async def get_current_telegram_id(
     1. HTTPBearer парсит заголовок Authorization: Bearer <token>
     2. credentials.credentials содержит сам токен
     3. security_scopes.scopes содержит список требуемых scopes из эндпоинта
-    4. Проверяем токен и извлекаем scopes из payload
-    5. Сравниваем: есть ли у пользователя все требуемые scopes
+    4. verify_token проверяет токен и выбрасывает исключения если что-то не так
+    5. Извлекаем scopes из payload и сравниваем с требуемыми
 
     Args:
         security_scopes: Автоматически создаётся FastAPI, содержит требуемые scopes
@@ -45,19 +45,21 @@ async def get_current_telegram_id(
         telegram_id
 
     Raises:
-        HTTPException 401: Токен невалидный или истёк
+        HTTPException 401: Токен истёк (TokenExpiredException) или невалидный (TokenInvalidException)
         HTTPException 403: Не хватает прав (scopes)
+
+    Почему не ловим исключения от verify_token:
+    - verify_token выбрасывает TokenExpiredException или TokenInvalidException
+    - Эти исключения наследуются от HTTPException
+    - FastAPI автоматически превратит их в HTTP response с правильными кодами
+    - Клиент получит понятную ошибку и сможет правильно отреагировать
     """
     token = credentials.credentials
-    payload = verify_token(token)
     authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
 
-    if payload is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": authenticate_value},
-        )
+    # verify_token выбросит TokenExpiredException или TokenInvalidException если проблема
+    # Мы их не ловим - пусть FastAPI обработает
+    payload = verify_token(token)
 
     try:
         telegram_id = int(payload.sub)
@@ -70,10 +72,12 @@ async def get_current_telegram_id(
             security_scopes.scopes,
         )
 
+        # Админ имеет доступ ко всему
         if ScopesPermissions.ADMIN.value in token_scopes:
             logger.info("Admin %s accessing: %s", telegram_id, security_scopes.scope_str)
             return telegram_id
 
+        # Проверяем каждый требуемый scope
         for required_scope in security_scopes.scopes:
             if required_scope not in token_scopes:
                 logger.warning(
@@ -90,6 +94,7 @@ async def get_current_telegram_id(
         return telegram_id
 
     except (ValueError, TypeError) as err:
+        # Это ошибки парсинга payload - не должны случаться если токен валидный
         logger.error("Token payload validation error: %s", err, exc_info=err)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -65,11 +65,33 @@ class RefreshTokensTelegramUseCase:
         self._refresh_token_repo = refresh_token_repo
 
     async def __call__(self, request: RefreshTelegramRequest) -> TokenPair:
+        # Получаем refresh токен из БД
         exist: RefreshTokenModel = await self._refresh_token_repo.get_one(
             token_hash=request.refresh_token
         )
         if exist is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+            logger.warning("Refresh token not found: %s", request.refresh_token[:10])
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+            )
+
+        # КРИТИЧЕСКИ ВАЖНО: Проверяем срок действия refresh токена
+        # Если не проверять - злоумышленник может использовать старый украденный токен
+        now = datetime.now(UTC)
+        if exist.expires_at < now:
+            logger.warning(
+                "Refresh token expired: token_id=%s, expired_at=%s, now=%s",
+                exist.id,
+                exist.expires_at,
+                now,
+            )
+            # Удаляем истекший токен из БД для безопасности
+            await self._refresh_token_repo.delete(exist.id)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token has expired. Please log in again.",
+            )
 
         user = await self._user_repo.get_by_telegram_id(request.telegram_id)
         if not user:
