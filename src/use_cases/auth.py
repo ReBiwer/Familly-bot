@@ -72,14 +72,20 @@ class RefreshTokensTelegramUseCase:
         if exist is None:
             logger.warning("Refresh token not found: %s", request.refresh_token[:10])
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Invalid refresh token",
             )
 
         # КРИТИЧЕСКИ ВАЖНО: Проверяем срок действия refresh токена
         # Если не проверять - злоумышленник может использовать старый украденный токен
         now = datetime.now(UTC)
-        if exist.expires_at < now:
+
+        # Приводим дату из БД к aware UTC, если она naive (для совместимости с SQLite в тестах)
+        expires_at = exist.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+
+        if expires_at < now:
             logger.warning(
                 "Refresh token expired: token_id=%s, expired_at=%s, now=%s",
                 exist.id,

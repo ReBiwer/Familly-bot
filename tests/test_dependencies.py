@@ -231,7 +231,7 @@ async def test_get_current_telegram_id_invalid_token():
         await get_current_telegram_id(security_scopes, credentials)
 
     assert exc_info.value.status_code == 401
-    assert "Could not validate credentials" in exc_info.value.detail
+    assert "Invalid token: " in exc_info.value.detail
 
 
 async def test_get_current_telegram_id_malformed_token():

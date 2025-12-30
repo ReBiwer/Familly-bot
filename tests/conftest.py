@@ -235,7 +235,7 @@ async def sample_refresh_token(
     return await refresh_token_repo.create(
         token_hash=create_refresh_token(),
         user_id=sample_user.id,
-        expires_at=datetime.now() + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
         device_info="test_device",
     )
 

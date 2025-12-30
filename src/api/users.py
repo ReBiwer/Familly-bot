@@ -11,7 +11,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, HTTPException, status
 
 from src.db.repositories import UserRepository
-from src.di import CurrentUserTelegramId, CurrentAdminTelegramId
+from src.di import CurrentAdminTelegramId, CurrentUserTelegramId
 from src.schemas import UserCreate, UserRead, UserUpdate
 
 router = APIRouter(

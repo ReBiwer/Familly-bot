@@ -9,12 +9,13 @@
 
 from datetime import timedelta
 
+import pytest
 from jose import jwt
 
 from src.constants import DEFAULT_SCOPES, ScopesPermissions
 from src.schemas import TokenPayload
 from src.settings import app_settings
-from src.utils import create_access_token, verify_token
+from src.utils import TokenInvalidException, create_access_token, verify_token
 
 # =============================================================================
 # Тесты create_access_token()
@@ -171,9 +172,11 @@ def test_verify_token_invalid_returns_none():
     """verify_token возвращает None для невалидного токена."""
     invalid_token = "this.is.invalid"
 
-    payload = verify_token(invalid_token)
+    with pytest.raises(TokenInvalidException) as exc_info:
+        verify_token(invalid_token)
 
-    assert payload is None
+    assert exc_info.value.status_code == 401
+    assert "Invalid token" in exc_info.value.detail
 
 
 def test_verify_token_empty_scopes():
