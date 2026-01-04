@@ -14,19 +14,20 @@ class TokenRequest(BaseModel):
 
 
 class TelegramAuthRequest(BaseModel):
-    first_name: str
-    mid_name: str
-    last_name: str
     telegram_id: int
+    first_name: str
+    mid_name: str | None
+    last_name: str | None
     hash_str: str
 
     @property
     def msg(self) -> str:
         return (
+            f"telegram_id={self.telegram_id}\n"
             f"name={self.first_name}\n"
-            f"mid_name={self.mid_name}\n"
-            f"last_name={self.last_name}\n"
-            f"telegram_id={self.telegram_id}"
+            f"mid_name={self.mid_name or None}\n"
+            f"last_name={self.last_name or None}\n"
+
         )
 
 
