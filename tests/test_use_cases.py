@@ -261,7 +261,7 @@ class TestAuthTelegramUseCaseWithScopes:
         """
         # Arrange: создаём пользователя с ролью admin
         await user_repo.create(
-            name=sample_telegram_auth_request.name,
+            name=sample_telegram_auth_request.first_name,
             mid_name=sample_telegram_auth_request.mid_name,
             last_name=sample_telegram_auth_request.last_name,
             telegram_id=sample_telegram_auth_request.telegram_id,
@@ -290,7 +290,7 @@ class TestAuthTelegramUseCaseWithScopes:
         """
         # Arrange: создаём пользователя с ролью child
         await user_repo.create(
-            name=sample_telegram_auth_request.name,
+            name=sample_telegram_auth_request.first_name,
             mid_name=sample_telegram_auth_request.mid_name,
             last_name=sample_telegram_auth_request.last_name,
             telegram_id=sample_telegram_auth_request.telegram_id,

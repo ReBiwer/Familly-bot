@@ -32,3 +32,18 @@ async def refresh_telegram_tokens(
 ) -> TokenPair:
     new_tokens = await refresh_use_case(request)
     return new_tokens
+
+
+@router.post("/hash_token")
+async def get_hash_token(request: TelegramAuthRequest) -> dict[str, str]:
+    import hashlib
+    import hmac
+
+    from src.settings import app_settings
+
+    signature = hmac.new(
+        key=app_settings.FRONT.BOT_TOKEN.encode(),
+        msg=request.msg.encode(),
+        digestmod=hashlib.sha256,
+    ).hexdigest()
+    return {"hash": signature}

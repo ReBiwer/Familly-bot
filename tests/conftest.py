@@ -262,7 +262,7 @@ def sample_telegram_auth_request() -> TelegramAuthRequest:
         digestmod=hashlib.sha256,
     ).hexdigest()
     return TelegramAuthRequest(
-        name="Владимир",
+        first_name="Владимир",
         mid_name="Николаевич",
         last_name="Быков",
         telegram_id=1111,

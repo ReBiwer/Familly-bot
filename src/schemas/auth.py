@@ -14,7 +14,7 @@ class TokenRequest(BaseModel):
 
 
 class TelegramAuthRequest(BaseModel):
-    name: str
+    first_name: str
     mid_name: str
     last_name: str
     telegram_id: int
@@ -23,7 +23,7 @@ class TelegramAuthRequest(BaseModel):
     @property
     def msg(self) -> str:
         return (
-            f"name={self.name}\n"
+            f"name={self.first_name}\n"
             f"mid_name={self.mid_name}\n"
             f"last_name={self.last_name}\n"
             f"telegram_id={self.telegram_id}"

@@ -30,7 +30,7 @@ class AuthTelegramUseCase:
 
         user, _ = await self._user_repo.get_or_create_by_telegram(
             telegram_id=request.telegram_id,
-            name=request.name,
+            name=request.first_name,
             mid_name=request.mid_name,
             last_name=request.last_name,
         )
