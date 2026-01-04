@@ -26,8 +26,7 @@ class TelegramAuthRequest(BaseModel):
             f"telegram_id={self.telegram_id}\n"
             f"name={self.first_name}\n"
             f"mid_name={self.mid_name or None}\n"
-            f"last_name={self.last_name or None}\n"
-
+            f"last_name={self.last_name or None}"
         )
 
 

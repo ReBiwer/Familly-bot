@@ -180,7 +180,7 @@ class TestAuthTelegramEndpoint:
         last_name = "Быков"
         telegram_id = 123456
 
-        msg = f"name={name}\nmid_name={mid_name}\nlast_name={last_name}\ntelegram_id={telegram_id}"
+        msg = f"telegram_id={telegram_id}\nname={name}\nmid_name={mid_name}\nlast_name={last_name}"
         hash_str = hmac.new(
             key=app_settings.FRONT.BOT_TOKEN.encode(),
             msg=msg.encode(),
@@ -188,7 +188,7 @@ class TestAuthTelegramEndpoint:
         ).hexdigest()
 
         return {
-            "name": name,
+            "first_name": name,
             "mid_name": mid_name,
             "last_name": last_name,
             "telegram_id": telegram_id,
@@ -277,7 +277,7 @@ class TestAuthTelegramEndpoint:
         user = await user_repo.get_by_telegram_id(data["telegram_id"])
 
         assert user is not None
-        assert user.name == data["name"]
+        assert user.name == data["first_name"]
         assert user.telegram_id == data["telegram_id"]
 
     async def test_auth_telegram_existing_user(
@@ -348,7 +348,7 @@ class TestRefreshTelegramEndpoint:
         last_name = "Быков"
         telegram_id = 123456
 
-        msg = f"name={name}\nmid_name={mid_name}\nlast_name={last_name}\ntelegram_id={telegram_id}"
+        msg = f"telegram_id={telegram_id}\nname={name}\nmid_name={mid_name}\nlast_name={last_name}"
         hash_str = hmac.new(
             key=app_settings.FRONT.BOT_TOKEN.encode(),
             msg=msg.encode(),
@@ -356,7 +356,7 @@ class TestRefreshTelegramEndpoint:
         ).hexdigest()
 
         return {
-            "name": name,
+            "first_name": name,
             "mid_name": mid_name,
             "last_name": last_name,
             "telegram_id": telegram_id,
@@ -563,7 +563,7 @@ class TestAuthTelegramWithScopes:
         last_name = "Быков"
         telegram_id = 123456
 
-        msg = f"name={name}\nmid_name={mid_name}\nlast_name={last_name}\ntelegram_id={telegram_id}"
+        msg = f"telegram_id={telegram_id}\nname={name}\nmid_name={mid_name}\nlast_name={last_name}"
         hash_str = hmac.new(
             key=app_settings.FRONT.BOT_TOKEN.encode(),
             msg=msg.encode(),
@@ -571,7 +571,7 @@ class TestAuthTelegramWithScopes:
         ).hexdigest()
 
         return {
-            "name": name,
+            "first_name": name,
             "mid_name": mid_name,
             "last_name": last_name,
             "telegram_id": telegram_id,
@@ -607,7 +607,7 @@ class TestAuthTelegramWithScopes:
         # Предварительно создаём пользователя с ролью admin
         user_repo = UserRepository(test_session)
         await user_repo.create(
-            name=data["name"],
+            name=data["first_name"],
             mid_name=data["mid_name"],
             last_name=data["last_name"],
             telegram_id=data["telegram_id"],
@@ -637,7 +637,7 @@ class TestAuthTelegramWithScopes:
         # Создаём пользователя с ролью child
         user_repo = UserRepository(test_session)
         await user_repo.create(
-            name=data["name"],
+            name=data["first_name"],
             mid_name=data["mid_name"],
             last_name=data["last_name"],
             telegram_id=data["telegram_id"],
@@ -672,7 +672,7 @@ class TestRefreshTelegramWithScopes:
         last_name = "Быков"
         telegram_id = 123456
 
-        msg = f"name={name}\nmid_name={mid_name}\nlast_name={last_name}\ntelegram_id={telegram_id}"
+        msg = f"telegram_id={telegram_id}\nname={name}\nmid_name={mid_name}\nlast_name={last_name}"
         hash_str = hmac.new(
             key=app_settings.FRONT.BOT_TOKEN.encode(),
             msg=msg.encode(),
@@ -680,7 +680,7 @@ class TestRefreshTelegramWithScopes:
         ).hexdigest()
 
         return {
-            "name": name,
+            "first_name": name,
             "mid_name": mid_name,
             "last_name": last_name,
             "telegram_id": telegram_id,
@@ -744,7 +744,7 @@ class TestRefreshTelegramWithScopes:
         auth_data = self._create_valid_auth_data()
         user_repo = UserRepository(test_session)
         await user_repo.create(
-            name=auth_data["name"],
+            name=auth_data["first_name"],
             mid_name=auth_data["mid_name"],
             last_name=auth_data["last_name"],
             telegram_id=auth_data["telegram_id"],

@@ -254,7 +254,7 @@ def sample_telegram_auth_request() -> TelegramAuthRequest:
     last_name = "Быков"
     telegram_id = 1111
     msg_to_hmac = (
-        f"name={name}\nmid_name={mid_name}\nlast_name={last_name}\ntelegram_id={telegram_id}"
+        f"telegram_id={telegram_id}\nname={name}\nmid_name={mid_name}\nlast_name={last_name}"
     )
     hmac_hash_str = hmac.new(
         key=app_settings.FRONT.BOT_TOKEN.encode(),
