@@ -94,3 +94,33 @@ class UserRepository(BaseRepository[UserModel]):
         logger.debug("Creating new user with telegram_id=%s", telegram_id)
         user = await self.create(telegram_id=telegram_id, **default_data)
         return user, True
+
+    async def update_by_telegram_id(self, telegram_id: int, **data) -> UserModel | None:
+        """
+        Обновляет сущность по telegram id.
+
+        Args:
+            telegram_id: ID сущности для обновления
+            **data: Поля для обновления (только переданные)
+
+        Returns:
+            Обновлённая ORM модель или None если не найдена
+
+        Example:
+            ```python
+            user = await repo.update(42, email="new@example.com")
+            ```
+        """
+        logger.debug("Update %s id=%s with data=%s", self.model.__name__, telegram_id, data)
+        instance = await self.get_by_id(telegram_id)
+        if not instance:
+            logger.debug("%s with id=%s not found", self.model.__name__, telegram_id)
+            return None
+
+        for key, value in data.items():
+            if hasattr(instance, key):
+                setattr(instance, key, value)
+
+        await self.session.flush()
+        logger.debug("Updated %s id=%s", self.model.__name__, telegram_id)
+        return instance

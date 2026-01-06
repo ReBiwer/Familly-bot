@@ -126,10 +126,9 @@ async def get_user(
     return UserRead.model_validate(user)
 
 
-@router.get("/telegram/{telegram_id}", response_model=UserRead)
+@router.get("/telegram", response_model=UserRead)
 async def get_user_by_telegram(
-    telegram_id: CurrentAdminTelegramId,
-    user_telegram_id: int,
+    telegram_id: CurrentUserTelegramId,
     user_repo: FromDishka[UserRepository],
 ) -> UserRead:
     """
@@ -145,21 +144,20 @@ async def get_user_by_telegram(
     Raises:
         HTTPException 404 если пользователь не найден
     """
-    user = await user_repo.get_by_telegram_id(user_telegram_id)
+    user = await user_repo.get_by_telegram_id(telegram_id)
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with telegram_id={user_telegram_id} not found",
+            detail=f"User with telegram_id={telegram_id} not found",
         )
 
     return UserRead.model_validate(user)
 
 
-@router.patch("/{user_id}", response_model=UserRead)
+@router.patch("/telegram", response_model=UserRead)
 async def update_user(
-    telegram_id: CurrentAdminTelegramId,
-    user_id: int,
+    telegram_id: CurrentUserTelegramId,
     data: UserUpdate,
     user_repo: FromDishka[UserRepository],
 ) -> UserRead:
@@ -167,7 +165,7 @@ async def update_user(
     Обновление данных пользователя.
 
     Args:
-        user_id: ID пользователя
+        telegram_id: telegram id пользователя
         data: Данные для обновления (только заполненные поля)
         user_repo: Репозиторий пользователей
 
@@ -178,26 +176,26 @@ async def update_user(
         HTTPException 404 если пользователь не найден
     """
     # Получаем только непустые поля для обновления
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data = data.model_dump(exclude_none=True)
 
     if not update_data:
         # Если нечего обновлять, просто возвращаем текущего пользователя
-        user = await user_repo.get_by_id(user_id)
+        user = await user_repo.get_by_telegram_id(telegram_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with id={user_id} not found",
+                detail=f"User with id={telegram_id} not found",
             )
         return UserRead.model_validate(user)
 
-    logger.info("Updating user id=%s with data=%s", user_id, update_data)
+    logger.info("Updating user id=%s with data=%s", telegram_id, update_data)
 
-    user = await user_repo.update(user_id, **update_data)
+    user = await user_repo.update_by_telegram_id(telegram_id, **update_data)
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id={user_id} not found",
+            detail=f"User with id={telegram_id} not found",
         )
 
     return UserRead.model_validate(user)
@@ -228,38 +226,3 @@ async def delete_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id={user_id} not found",
         )
-
-
-@router.post("/telegram/{telegram_id}/register", response_model=UserRead)
-async def register_or_get_user(
-    telegram_id: CurrentAdminTelegramId,
-    user_telegram_id: int,
-    data: UserCreate,
-    user_repo: FromDishka[UserRepository],
-) -> UserRead:
-    """
-    Регистрация пользователя или получение существующего.
-
-    Удобный эндпоинт для Telegram бота:
-    - Если пользователь существует — возвращает его
-    - Если нет — создаёт нового
-
-    Args:
-        user_telegram_id: ID пользователя в Telegram
-        data: Данные для создания (если пользователь новый)
-        user_repo: Репозиторий пользователей
-
-    Returns:
-        Пользователь (новый или существующий)
-    """
-    user, created = await user_repo.get_or_create_by_telegram(
-        telegram_id=user_telegram_id,
-        **data.model_dump(exclude={"telegram_id"}),
-    )
-
-    if created:
-        logger.info("New user registered: telegram_id=%s", user_telegram_id)
-    else:
-        logger.info("Existing user found: telegram_id=%s", user_telegram_id)
-
-    return UserRead.model_validate(user)
