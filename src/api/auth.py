@@ -3,11 +3,10 @@ import logging
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter
-from pygments.lexer import default
 
 from src.schemas import RefreshTelegramRequest, TelegramAuthRequest, TokenPair
-from src.use_cases import AuthTelegramUseCase, RefreshTokensTelegramUseCase
 from src.settings import app_settings
+from src.use_cases import AuthTelegramUseCase, RefreshTokensTelegramUseCase
 
 router = APIRouter(
     prefix="/auth",
@@ -35,12 +34,12 @@ async def refresh_telegram_tokens(
     new_tokens = await refresh_use_case(request)
     return new_tokens
 
+
 if app_settings.DEBUG:
     import hashlib
     import hmac
 
     from pydantic import BaseModel, Field
-
 
     class DebugTelegramAuthRequest(BaseModel):
         telegram_id: int
