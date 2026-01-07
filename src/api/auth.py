@@ -3,9 +3,11 @@ import logging
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter
+from pygments.lexer import default
 
 from src.schemas import RefreshTelegramRequest, TelegramAuthRequest, TokenPair
 from src.use_cases import AuthTelegramUseCase, RefreshTokensTelegramUseCase
+from src.settings import app_settings
 
 router = APIRouter(
     prefix="/auth",
@@ -33,17 +35,33 @@ async def refresh_telegram_tokens(
     new_tokens = await refresh_use_case(request)
     return new_tokens
 
-
-@router.post("/hash_token")
-async def get_hash_token(request: TelegramAuthRequest) -> dict[str, str]:
+if app_settings.DEBUG:
     import hashlib
     import hmac
 
-    from src.settings import app_settings
+    from pydantic import BaseModel, Field
 
-    signature = hmac.new(
-        key=app_settings.FRONT.BOT_TOKEN.encode(),
-        msg=request.msg.encode(),
-        digestmod=hashlib.sha256,
-    ).hexdigest()
-    return {"hash": signature}
+
+    class DebugTelegramAuthRequest(BaseModel):
+        telegram_id: int
+        first_name: str
+        mid_name: str | None = Field(default=None)
+        last_name: str | None = Field(default=None)
+
+        @property
+        def msg(self) -> str:
+            return (
+                f"telegram_id={self.telegram_id}\n"
+                f"name={self.first_name}\n"
+                f"mid_name={self.mid_name or None}\n"
+                f"last_name={self.last_name or None}"
+            )
+
+    @router.post("/hash_token")
+    async def get_hash_token(request: DebugTelegramAuthRequest) -> dict[str, str]:
+        signature = hmac.new(
+            key=app_settings.FRONT.BOT_TOKEN.encode(),
+            msg=request.msg.encode(),
+            digestmod=hashlib.sha256,
+        ).hexdigest()
+        return {"hash": signature}

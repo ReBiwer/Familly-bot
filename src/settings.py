@@ -137,6 +137,7 @@ class AppSettings(BaseSettings):
     LOG_LEVEl: str = "INFO"
     HOST: str
     PORT: int
+    DEBUG: bool = False
 
     # Вложенные настройки - теперь будут корректно загружены
     AUTH: AuthSettings
