@@ -16,8 +16,8 @@ class TokenRequest(BaseModel):
 class TelegramAuthRequest(BaseModel):
     telegram_id: int
     first_name: str
-    mid_name: str | None
-    last_name: str | None
+    mid_name: str | None = None
+    last_name: str | None = None
     hash_str: str
 
     @property
