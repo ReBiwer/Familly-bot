@@ -4,6 +4,15 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class BackendSettings(BaseModel):
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+
+    @property
+    def PATH(self) -> str:
+        return f"http://{self.HOST}:{self.PORT}"
+
+
 class RedisSettings(BaseModel):
     """
     Настройки подключения к Redis.
@@ -23,9 +32,9 @@ class RedisSettings(BaseModel):
 class BotSettings(BaseSettings):
     BASE_DIR: Path = Path(__file__).resolve().parent
     BOT_TOKEN: str
-    BACKEND_BASE_URL: str
 
     REDIS: RedisSettings
+    BACKEND: BackendSettings
 
     model_config = SettingsConfigDict(
         env_file=f"/{BASE_DIR}/.env",

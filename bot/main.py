@@ -7,6 +7,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
 from bot.common import setup_logging
+from bot.di import init_di_container
 from bot.routers import main_router
 from bot.settings import bot_settings
 
@@ -40,9 +41,11 @@ async def run_bot():
 
     dp = Dispatcher(storage=storage)
 
-    await bot.delete_webhook()
+    init_di_container(dp)
 
     dp.include_router(main_router)
+
+    await bot.delete_webhook()
 
     await set_commands(bot)
 
