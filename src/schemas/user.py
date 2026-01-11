@@ -91,4 +91,3 @@ class UserUpdate(BaseSchema):
     last_name: str | None = Field(None, min_length=1, max_length=100)
     phone: str | None = Field(None, max_length=20)
     email: EmailStr | None = None
-    telegram_id: int | None = None
