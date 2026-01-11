@@ -1,4 +1,4 @@
 from .key_state import KeyState
-from .messages import StartMessages
+from .messages import CommonMessages
 
-__all__ = ["KeyState", "StartMessages"]
+__all__ = ["KeyState", "CommonMessages"]

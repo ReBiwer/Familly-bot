@@ -1,11 +1,7 @@
 from aiogram import Router
 
-from .start import router as start_router
+from .common import router as common_router
 
 main_router = Router()
 
-main_router.include_routers(
-    *[
-        start_router,
-    ]
-)
+main_router.include_routers(*[common_router])

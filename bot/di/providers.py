@@ -1,5 +1,3 @@
-from typing import cast
-
 from aiogram.fsm.context import FSMContext
 from aiogram.types import TelegramObject, User
 from dishka import Provider, Scope, provide
