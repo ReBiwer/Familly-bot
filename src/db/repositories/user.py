@@ -112,7 +112,7 @@ class UserRepository(BaseRepository[UserModel]):
             ```
         """
         logger.debug("Update %s id=%s with data=%s", self.model.__name__, telegram_id, data)
-        instance = await self.get_by_id(telegram_id)
+        instance = await self.get_by_telegram_id(telegram_id)
         if not instance:
             logger.debug("%s with id=%s not found", self.model.__name__, telegram_id)
             return None
