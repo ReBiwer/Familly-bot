@@ -8,8 +8,8 @@ from dishka.integrations.aiogram import FromDishka
 
 from bot.adapters import BackendAdapter
 from bot.constants import CommonMessages, KeyState
-from bot.schemas import UserProfile
 from bot.keyboards import get_actions_profile
+from bot.schemas import UserProfile
 
 router = Router()
 logger = logging.getLogger(__name__)

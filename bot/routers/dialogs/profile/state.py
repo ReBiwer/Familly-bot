@@ -1,5 +1,6 @@
 from aiogram.fsm.state import State, StatesGroup
 
+
 class UpdateProfileSG(StatesGroup):
     main_menu = State()
     input_mid_name = State()
