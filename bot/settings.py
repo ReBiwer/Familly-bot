@@ -32,6 +32,7 @@ class RedisSettings(BaseModel):
 class BotSettings(BaseSettings):
     BASE_DIR: Path = Path(__file__).resolve().parent
     BOT_TOKEN: str
+    DEBUG: bool = True
 
     REDIS: RedisSettings
     BACKEND: BackendSettings

@@ -3,8 +3,10 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
+from aiogram_dialog import setup_dialogs
 
 from bot.common import setup_logging
 from bot.di import init_di_container
@@ -25,9 +27,13 @@ async def set_commands(bot: Bot):
 
 
 def create_storage():
-    storage = RedisStorage.from_url(
-        bot_settings.REDIS.redis_url,
-    )
+    if not bot_settings.DEBUG:
+        storage = RedisStorage.from_url(
+            bot_settings.REDIS.redis_url,
+            key_builder=DefaultKeyBuilder(with_destiny=True),
+        )
+    else:
+        storage = MemoryStorage()
     logger.debug("Redis storage created")
     return storage
 
@@ -45,6 +51,7 @@ async def run_bot():
     init_di_container(dp)
 
     dp.include_router(main_router)
+    setup_dialogs(dp)
 
     await bot.delete_webhook()
 

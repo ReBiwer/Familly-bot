@@ -4,10 +4,12 @@ import httpx
 from aiogram import Router
 from aiogram.filters.command import Command, CommandStart, Message
 from aiogram.fsm.context import FSMContext
+from aiogram_dialog import DialogManager, StartMode
 from dishka.integrations.aiogram import FromDishka
 
 from bot.adapters import BackendAdapter
 from bot.constants import CommonMessages, KeyState
+from bot.routers.dialogs import UpdateProfileSG
 from bot.schemas import UserProfile
 
 router = Router()
@@ -21,6 +23,7 @@ async def start(
     backend_adapter: FromDishka[BackendAdapter],
     user_profile: FromDishka[UserProfile | None],
 ):
+    await state.set_state()
     try:
         if user_profile is None:
             user = await backend_adapter.get_me()
@@ -47,9 +50,12 @@ async def start(
 
 
 @router.message(Command("profile"))
-async def profile(message: Message, user_profile: FromDishka[UserProfile | None]):
+async def profile(
+    message: Message, user_profile: FromDishka[UserProfile | None], dialog_manager: DialogManager
+):
     if user_profile:
-        await message.answer(CommonMessages.profile_message(user_profile))
+        await dialog_manager.start(UpdateProfileSG.main_menu, mode=StartMode.RESET_STACK)
+        return
     await message.answer(CommonMessages.not_auth_user())
 
 
