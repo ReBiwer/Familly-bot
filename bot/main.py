@@ -21,6 +21,7 @@ async def set_commands(bot: Bot):
         BotCommand(command="start", description="Старт"),
         BotCommand(command="help", description="Инфо о боте"),
         BotCommand(command="profile", description="Посмотреть свой профиль"),
+        BotCommand(command="agents", description="Выбрать агента с которым хотите общаться")
     ]
     await bot.set_my_commands(commands, BotCommandScopeDefault())
     logger.debug("Commands bot's set")
