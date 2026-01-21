@@ -22,6 +22,7 @@ async def start(
     backend_adapter: FromDishka[BackendAdapter],
     user_profile: FromDishka[UserProfile | None],
 ):
+    await state.set_state()
     try:
         if user_profile is None:
             user = await backend_adapter.get_me()
