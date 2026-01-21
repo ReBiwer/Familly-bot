@@ -1,6 +1,7 @@
 from aiogram_dialog import Window
+from aiogram_dialog.widgets.markup.reply_keyboard import ReplyKeyboardFactory
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Button, Group, SwitchTo, Back
+from aiogram_dialog.widgets.kbd import Button, Group, SwitchTo, RequestContact
 from aiogram_dialog.widgets.text import Const, Format, Multi
 
 from .getters import get_user_profile_info
@@ -8,7 +9,6 @@ from .handlers import (
     input_last_name_handler,
     input_mid_name_handler,
     input_phone_handler,
-    request_phone_handler,
     back_to_menu,
 )
 from .state import UpdateProfileSG
@@ -27,7 +27,7 @@ main_menu = Window(
     Group(
         SwitchTo(text=Const("Отчество"), id="edit_mid_name", state=UpdateProfileSG.input_mid_name),
         SwitchTo(text=Const("Фамилию"), id="edit_last_name", state=UpdateProfileSG.input_last_name),
-        Button(text=Const("Телефон"), id="request_phone", on_click=request_phone_handler),
+        SwitchTo(text=Const("Телефон"), id="request_phone", state=UpdateProfileSG.input_phone),
         SwitchTo(text=Const("Почту"), id="edit_email", state=UpdateProfileSG.input_email),
         width=2,
     ),
@@ -54,9 +54,11 @@ last_name_window = Window(
 )
 
 phone_window = Window(
-    Format("Текущее значение - {phone}"),
+    Multi(Const("Нажмите кнопку поделиться контактом"), Format("Текущее значение - {phone}")),
+    RequestContact(text=Const("Поделиться телефоном")),
     btn_back,
     MessageInput(func=input_phone_handler, content_types=["contact"]),
+    markup_factory=ReplyKeyboardFactory(one_time_keyboard=True, resize_keyboard=True),
     getter=get_user_profile_info,
     state=UpdateProfileSG.input_phone,
 )

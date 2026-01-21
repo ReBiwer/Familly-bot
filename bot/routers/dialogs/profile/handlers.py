@@ -64,22 +64,6 @@ async def input_last_name_handler(
 
 
 @inject
-async def request_phone_handler(
-    callback: CallbackQuery,
-    widget: Button,
-    dialog_manager: DialogManager,
-    **kwargs
-):
-    await callback.answer()
-    logger.debug("Запрос контакта пользователя через клавиатуру")
-    await callback.message.answer(
-        "Нажмите кнопку поделиться контактом",
-        reply_markup=_get_request_contact_kbd(),
-    )
-    await dialog_manager.start(UpdateProfileSG.input_phone)
-
-
-@inject
 async def input_phone_handler(
     message: Message,
     widget: MessageInput,
