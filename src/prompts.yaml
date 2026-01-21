@@ -29,7 +29,7 @@ prompts:
   # ---------------------------------------------------------------------------
   - name: "system_default"
     version: "1.0"
-    status: "prod"
+    status: "dev"
     description: "Базовый системный промпт для семейного бота"
     input_variables: []
     template: |
