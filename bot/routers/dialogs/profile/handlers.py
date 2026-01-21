@@ -93,3 +93,11 @@ async def input_phone_handler(
     updated_profile = await backend_adapter.update_user(update_date)
     await _update_profile_in_state(updated_profile, dialog_manager)
     await dialog_manager.start(UpdateProfileSG.main_menu)
+
+
+async def back_to_menu(
+    callback: CallbackQuery,
+    widget: Button,
+    dialog_manager: DialogManager
+):
+    await dialog_manager.switch_to(UpdateProfileSG.main_menu)

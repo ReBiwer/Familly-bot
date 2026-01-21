@@ -1,6 +1,6 @@
 from aiogram_dialog import Window
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Button, Group, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Group, SwitchTo, Back
 from aiogram_dialog.widgets.text import Const, Format, Multi
 
 from .getters import get_user_profile_info
@@ -9,6 +9,7 @@ from .handlers import (
     input_mid_name_handler,
     input_phone_handler,
     request_phone_handler,
+    back_to_menu,
 )
 from .state import UpdateProfileSG
 
@@ -34,9 +35,11 @@ main_menu = Window(
     state=UpdateProfileSG.main_menu,
 )
 
+btn_back = Button(text=Const("Назад"), id="back_menu", on_click=back_to_menu)
 
 mid_name_window = Window(
     Multi(Format("Текущее значение - {mid_name}"), Const("Введите новое значение")),
+    btn_back,
     MessageInput(func=input_mid_name_handler, content_types=["text"]),
     getter=get_user_profile_info,
     state=UpdateProfileSG.input_mid_name,
@@ -44,6 +47,7 @@ mid_name_window = Window(
 
 last_name_window = Window(
     Multi(Format("Текущее значение - {last_name}"), Const("Введите новое значение")),
+    btn_back,
     MessageInput(func=input_last_name_handler, content_types=["text"]),
     getter=get_user_profile_info,
     state=UpdateProfileSG.input_last_name,
@@ -51,6 +55,7 @@ last_name_window = Window(
 
 phone_window = Window(
     Format("Текущее значение - {phone}"),
+    btn_back,
     MessageInput(func=input_phone_handler, content_types=["contact"]),
     getter=get_user_profile_info,
     state=UpdateProfileSG.input_phone,
@@ -58,6 +63,7 @@ phone_window = Window(
 
 email_window = Window(
     Multi(Format("Текущее значение - {email}"), Const("Введите новое значение")),
+    btn_back,
     MessageInput(func=input_mid_name_handler, content_types=["text"]),
     getter=get_user_profile_info,
     state=UpdateProfileSG.input_email,
