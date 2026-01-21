@@ -24,3 +24,7 @@ class CommonMessages:
     @staticmethod
     def help_message() -> str:
         return "Сообщение /help"
+
+    @staticmethod
+    def ai_choice() -> str:
+        return "Выберите с кем хотите пообщаться"

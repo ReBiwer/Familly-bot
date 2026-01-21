@@ -8,7 +8,7 @@ from dishka.integrations.aiogram import FromDishka
 
 from bot.adapters import BackendAdapter
 from bot.constants import CommonMessages, KeyState
-from bot.keyboards import get_actions_profile
+from bot.keyboards import get_actions_profile, get_choice_agent
 from bot.schemas import UserProfile
 
 router = Router()
@@ -61,3 +61,14 @@ async def profile(message: Message, user_profile: FromDishka[UserProfile | None]
 @router.message(Command("help"))
 async def help_handler(message: Message):
     await message.answer(CommonMessages.help_message())
+
+
+@router.message(Command("agents"))
+async def choice_agent(message: Message, user_profile: FromDishka[UserProfile | None]):
+    if user_profile:
+        await message.answer(
+            CommonMessages.ai_choice(),
+            reply_markup=get_choice_agent(),
+        )
+        return
+    await message.answer(CommonMessages.not_auth_user())
