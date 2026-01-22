@@ -3,7 +3,7 @@ import hmac
 
 from httpx import AsyncClient
 
-from bot.schemas import AuthRequest, TokenPair, UserProfile, UserUpdate
+from bot.schemas import AuthRequest, TokenPair, UserProfile, UserUpdate, DefaultAgentRequest, DefaultAgentResponse
 from bot.settings import bot_settings
 
 
@@ -82,3 +82,14 @@ class BackendAdapter:
         )
         response.raise_for_status()
         return UserProfile.model_validate(response.json())
+
+    async def chat_with_default_agent(self, data: DefaultAgentRequest) -> DefaultAgentResponse:
+        if self.headers is None:
+            await self.auth()
+        response = await self._client.post(
+            "/ai/chat",
+            json=data.model_dump(),
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        return DefaultAgentResponse.model_validate(response.json())
