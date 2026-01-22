@@ -20,7 +20,7 @@ class BackendAdapter:
         self.first_name = first_name
         self.mid_name = mid_name
         self.last_name = last_name
-        self._client = AsyncClient(base_url=bot_settings.BACKEND.PATH)
+        self._client = AsyncClient(base_url=bot_settings.BACKEND.PATH, timeout=10.0)
         self._tokens: TokenPair | None = tokens
 
     @property
