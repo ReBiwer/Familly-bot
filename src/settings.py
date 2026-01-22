@@ -62,7 +62,7 @@ class AuthSettings(BaseModel):
     JWT_ALG: str = "HS256"
 
 
-class Frontsettings(BaseModel):
+class FrontSettings(BaseModel):
     """
     Настройки для взаимодействия с фронтом (телеграм бот, фронт, мобильное приложение)
 
@@ -144,7 +144,7 @@ class AppSettings(BaseSettings):
     DB: DBSettings
     REDIS: RedisSettings
     LLM: LLMSettings
-    FRONT: Frontsettings
+    FRONT: FrontSettings
     # PROMPT имеет значения по умолчанию — необязателен в .env
     PROMPT: PromptSettings = PromptSettings()
 
