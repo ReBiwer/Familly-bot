@@ -4,11 +4,13 @@ import httpx
 from aiogram import Router
 from aiogram.filters.command import Command, CommandStart, Message
 from aiogram.fsm.context import FSMContext
+from aiogram_dialog import DialogManager
 from dishka.integrations.aiogram import FromDishka
 
+from bot.routers.dialogs import AgentChoiceSG
 from bot.adapters import BackendAdapter
 from bot.constants import CommonMessages, KeyState
-from bot.keyboards import get_actions_profile, get_choice_agent
+from bot.keyboards import get_actions_profile
 from bot.schemas import UserProfile
 
 router = Router()
@@ -65,11 +67,8 @@ async def help_handler(message: Message):
 
 
 @router.message(Command("agents"))
-async def choice_agent(message: Message, user_profile: FromDishka[UserProfile | None]):
+async def choice_agent(message: Message, user_profile: FromDishka[UserProfile | None], dialog_manager: DialogManager,):
     if user_profile:
-        await message.answer(
-            CommonMessages.ai_choice(),
-            reply_markup=get_choice_agent(),
-        )
+        await dialog_manager.start(AgentChoiceSG.choice_agent)
         return
     await message.answer(CommonMessages.not_auth_user())
