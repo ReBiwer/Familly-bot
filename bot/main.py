@@ -42,7 +42,7 @@ def create_storage():
 async def run_bot():
     bot = Bot(
         token=bot_settings.BOT_TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN_V2),
     )
 
     storage = create_storage()
