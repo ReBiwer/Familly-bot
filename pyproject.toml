@@ -15,6 +15,7 @@ dependencies = [
     "gunicorn>=23.0.0",
     "hh-api>=0.1.4",
     "langchain>=0.3.27",
+    "langchain-ollama>=0.3.10",
     "langchain-openai>=0.3.32",
     "langgraph>=0.6.6",
     "langgraph-checkpoint-redis>=0.1.1",

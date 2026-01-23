@@ -39,9 +39,34 @@ services:
     networks:
       - backend
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_container
+    env_file:
+      - .env
+    ports:
+      - '11434:11434'
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./docker/ollama/entrypoint.sh:/entrypoint.sh
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    networks:
+      - backend
+
 volumes:
   initdb:
   redis_data:
+  ollama_data:
 
 networks:
   backend:
