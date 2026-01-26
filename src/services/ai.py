@@ -1,34 +1,16 @@
-"""
-Сервис для взаимодействия с LLM (Large Language Model).
-
-Этот модуль предоставляет простой интерфейс для отправки сообщений к LLM
-и получения ответов. Включает механизм retry с экспоненциальной задержкой
-для обработки временных сбоев.
-
-Почему такая архитектура:
-1. Использую LangChain + LangGraph вместо прямого вызова OpenAI API, потому что:
-   - LangChain абстрагирует работу с разными LLM-провайдерами (OpenAI, Anthropic, локальные модели)
-   - LangGraph позволяет строить сложные workflow с состоянием и checkpointing
-   - Легко расширять функционал в будущем (добавлять RAG, агентов, память)
-
-2. StateGraph даже для простого случая, потому что:
-   - Checkpointer сохраняет историю диалога между вызовами
-   - Можно добавить дополнительные ноды без рефакторинга
-   - Визуализация графа помогает в отладке
-"""
-
 import asyncio
 import logging
 import random
-from typing import TypedDict
 
 import openai
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.messages.base import BaseMessage
 from langchain_core.runnables import RunnableConfig
+from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.graph import END, START, StateGraph
+from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from src.services.prompts import PromptService
@@ -37,21 +19,19 @@ from src.settings import app_settings
 logger = logging.getLogger(__name__)
 
 
-class AIServiceState(TypedDict):
+class AIServiceState(MessagesState):
     """
     Состояние графа для AIService.
 
-    Attributes:
-        messages: История сообщений в диалоге (list[str])
-        response: Последний ответ от LLM (str)
+    Наследуется от MessagesState, который автоматически включает:
+        messages: Annotated[list[BaseMessage], add_messages]
+            - История сообщений в диалоге (HumanMessage, AIMessage, SystemMessage)
+            - С встроенным reducer add_messages для автоматического добавления новых сообщений
 
-    Почему TypedDict, а не dataclass:
-    - LangGraph работает с dict-подобными структурами
-    - TypedDict даёт типизацию без накладных расходов на создание объектов
-    - Легко сериализуется для checkpointing
+    Дополнительные атрибуты:
+        response: Последний ответ от LLM в виде строки (для удобства)
     """
 
-    messages: list[str]
     response: str
 
 
@@ -69,40 +49,6 @@ def gen_png_graph(app_obj, schema_path: str = f"{app_settings.BASE_DIR}/schema_g
 
 
 class AIService:
-    """
-    Сервис для общения с LLM.
-
-    Принимает сообщение пользователя и возвращает ответ от модели.
-    Поддерживает сохранение истории диалога через checkpointer.
-    Использует PromptService для получения актуальных промптов.
-
-    Attributes:
-        llm: Экземпляр ChatOpenAI для запросов к модели
-        _prompt_service: Сервис для управления промптами
-
-    Example:
-        ```python
-        from langgraph.checkpoint.memory import MemorySaver
-        from src.services.prompts import PromptService
-
-        checkpointer = MemorySaver()
-        prompt_service = PromptService()
-        ai_service = AIService(
-            checkpointer=checkpointer,
-            prompt_service=prompt_service
-        )
-
-        # Отправка сообщения
-        response = await ai_service.chat(
-            user_id=123,
-            message="Привет! Как дела?"
-        )
-        print(response)  # "Привет! У меня всё отлично, спасибо за вопрос!"
-        ```
-    """
-
-    # Имя системного промпта по умолчанию
-    # Используется для получения промпта из PromptService
     DEFAULT_SYSTEM_PROMPT_NAME = "system_default"
 
     def __init__(
@@ -129,18 +75,11 @@ class AIService:
         """
         logger.debug(
             "Инициализация LLM модели: %s\nBase URL модели: %s",
-            app_settings.LLM.MODEL,
+            app_settings.LLM.OPENAI_MODEL,
             app_settings.LLM.BASE_URL,
         )
 
-        # Инициализация LLM
-        # temperature=0.7 — баланс между креативностью и предсказуемостью
-        self.llm = ChatOpenAI(
-            model=app_settings.LLM.MODEL,
-            temperature=0.7,
-            api_key=app_settings.LLM.API_KEY,  # pyright: ignore[reportArgumentType]
-            base_url=app_settings.LLM.BASE_URL,
-        )
+        self.llm = self._get_chat_llm()
 
         self._prompt_service = prompt_service
         self._workflow = self._build_workflow(checkpointer)
@@ -150,21 +89,21 @@ class AIService:
             gen_png_graph(self._workflow)
 
     @staticmethod
+    def _get_chat_llm() -> BaseChatModel:
+        if app_settings.LLM.OLLAMA_MODEL:
+            return ChatOllama(
+                model=app_settings.LLM.OLLAMA_MODEL,
+                temperature=app_settings.LLM.TEMPERATURE,
+            )
+        return ChatOpenAI(
+            model=app_settings.LLM.OPENAI_MODEL,
+            api_key=app_settings.LLM.API_KEY,
+            base_url=app_settings.LLM.BASE_URL,
+            temperature=app_settings.LLM.TEMPERATURE,
+        )
+
+    @staticmethod
     def _get_config(user_id: int) -> RunnableConfig:
-        """
-        Создаёт конфигурацию для выполнения графа.
-
-        Args:
-            user_id: ID пользователя для идентификации потока диалога
-
-        Returns:
-            RunnableConfig с thread_id для сохранения контекста диалога
-
-        Зачем thread_id:
-        - Checkpointer использует его как ключ для сохранения/загрузки состояния
-        - Разные user_id = разные независимые диалоги
-        - Формат "user_{id}" позволяет легко отлаживать и искать в логах
-        """
         return RunnableConfig(
             configurable={
                 "thread_id": f"user_{user_id}",
@@ -327,62 +266,52 @@ class AIService:
 
         Returns:
             Текст системного промпта
-
-        Почему отдельный метод:
-        - Централизованная точка получения промптов
-        - Легко добавить логику выбора промпта (A/B тесты, персонализация)
-        - Упрощает тестирование — можно замокать этот метод
         """
         name = prompt_name or self.DEFAULT_SYSTEM_PROMPT_NAME
         prompt = self._prompt_service.get_prompt(name)
         return prompt.template
 
-    async def _generate_response_node(self, state: AIServiceState) -> dict[str, str]:
+    async def _generate_response_node(self, state: AIServiceState) -> dict:
         """
-        Нода графа для генерации ответа.
+        Нода графа для генерации ответа с учётом ПОЛНОЙ истории диалога.
 
         Args:
-            state: Текущее состояние с историей сообщений
+            state: Текущее состояние с ПОЛНОЙ историей сообщений.
+                   state["messages"] содержит ВСЕ предыдущие сообщения благодаря checkpointer!
 
         Returns:
-            Словарь с ключом "response" — ответ от LLM
+            Словарь с ключами:
+            - "messages": BaseMessage объект с ответом (добавится к истории через reducer)
+            - "response": строковое представление ответа (для удобства)
 
-        Как работает:
-        1. Берёт последнее сообщение из state["messages"]
-        2. Получает системный промпт из PromptService
-        3. Формирует запрос к LLM
-        4. Возвращает ответ для записи в state
-
-        Возможные ошибки:
-        - IndexError если messages пуст — проверяем перед вызовом в chat()
-        - PromptNotFoundError — если промпт не найден
-        - Ошибки LLM — пробрасываются из _request_llm()
         """
-        # Берём последнее сообщение пользователя
-        user_message = state["messages"][-1]
+        all_messages = state["messages"]
 
-        # Получаем системный промпт из PromptService
-        # Версия и статус берутся из app_settings.PROMPT
         system_prompt = self._get_system_prompt()
 
-        # Формируем запрос с системным промптом для задания контекста
-        messages: list[BaseMessage] = [
+        messages_for_llm: list[BaseMessage] = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=user_message),
+            *all_messages,
         ]
 
-        logger.debug("Отправляем сообщение в LLM: %s...", user_message[:50])
-        response = await self._request_llm(messages)
+        logger.debug(
+            "Отправляем в LLM %d сообщений (последнее: %s...)",
+            len(messages_for_llm),
+            str(all_messages[-1].content)[:50] if all_messages else "пусто",
+        )
+        response = await self._request_llm(messages_for_llm)
 
         # Извлекаем текст ответа
         response_text = response.content if response else ""
         logger.debug("Получен ответ от LLM: %s...", str(response_text)[:50])
-
-        return {"response": str(response_text)}
+        return {
+            "messages": [response],
+            "response": str(response_text),
+        }
 
     async def chat(self, user_id: int, message: str) -> str:
         """
-        Отправляет сообщение пользователя и получает ответ от LLM.
+        Отправляет сообщение пользователя и получает ответ от LLM с сохранением истории.
 
         Args:
             user_id: ID пользователя для сохранения контекста диалога.
@@ -395,33 +324,16 @@ class AIService:
         Raises:
             ValueError: Если message пустой
             RuntimeError: Если LLM не вернул ответ после всех попыток
-
-        Example:
-            ```python
-            response = await ai_service.chat(
-                user_id=42,
-                message="Что такое Python?"
-            )
-            # response: "Python — это высокоуровневый язык программирования..."
-            ```
-
-        Примечание:
-        - История диалога сохраняется автоматически через checkpointer
-        - Для нового диалога используйте новый user_id
         """
         if not message.strip():
             raise ValueError("Сообщение не может быть пустым")
 
-        # Начальное состояние с сообщением пользователя
-        start_state: AIServiceState = {
-            "messages": [message],
-            "response": "",
-        }
-
         config = self._get_config(user_id)
         logger.info("Обрабатываем сообщение от user_id=%s", user_id)
 
-        # Запускаем граф
-        result: AIServiceState = await self._workflow.ainvoke(start_state, config=config)
+        new_message_state = {
+            "messages": [HumanMessage(content=message)],
+        }
+        result: AIServiceState = await self._workflow.ainvoke(new_message_state, config=config)
 
         return result["response"]
