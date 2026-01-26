@@ -46,9 +46,11 @@ class LLMSettings(BaseModel):
     Переменные загружаются через AppSettings с префиксом LLM__
     """
 
-    MODEL: str
+    OPENAI_MODEL: str
     BASE_URL: str = "https://openrouter.ai/api/v1"
     API_KEY: str
+    OLLAMA_MODEL: str
+    TEMPERATURE: float = 0.7
 
 
 class AuthSettings(BaseModel):
