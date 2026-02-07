@@ -14,6 +14,7 @@ from collections.abc import AsyncGenerator
 
 from dishka import Provider, Scope, provide
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.redis import AsyncRedisSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,10 +52,19 @@ class ServicesProvider(Provider):
     @provide
     async def get_checkpointer(self) -> AsyncGenerator[BaseCheckpointSaver, None]:
         """
-        Создаёт Redis checkpointer для LangGraph.
+        Создаёт checkpointer для LangGraph в зависимости от режима работы.
 
-        Checkpointer сохраняет состояние диалогов в Redis.
-        TTL (время жизни) настраивается через app_settings.REDIS.CHECKPOINT_TTL.
+        В DEBUG режиме:
+        - Использует MemorySaver - хранит состояние в памяти
+        - Быстрый старт, не требует Redis
+        - История теряется при перезапуске приложения
+        - Идеально для разработки и тестирования
+
+        В PROD режиме:
+        - Использует AsyncRedisSaver - хранит состояние в Redis
+        - Персистентное хранение между перезапусками
+        - TTL (время жизни) настраивается через app_settings.REDIS.CHECKPOINT_TTL
+        - Масштабируемое решение для продакшена
 
         Почему AsyncGenerator:
         - AsyncRedisSaver требует async context manager для корректного закрытия
@@ -62,14 +72,18 @@ class ServicesProvider(Provider):
         - При завершении приложения соединение корректно закрывается
 
         Yields:
-            BaseCheckpointSaver: Redis checkpointer для AIService
+            BaseCheckpointSaver: MemorySaver или Redis checkpointer для AIService
         """
-        async with AsyncRedisSaver.from_conn_string(
-            app_settings.REDIS.redis_url,
-            ttl={"default_ttl": app_settings.REDIS.CHECKPOINT_TTL},
-        ) as checkpointer:
-            await checkpointer.asetup()
-            yield checkpointer
+        if app_settings.DEBUG:
+            yield MemorySaver()
+        else:
+            # В продакшене используем Redis для персистентного хранения
+            async with AsyncRedisSaver.from_conn_string(
+                app_settings.REDIS.redis_url,
+                ttl={"default_ttl": app_settings.REDIS.CHECKPOINT_TTL},
+            ) as checkpointer:
+                await checkpointer.asetup()
+                yield checkpointer
 
     @provide
     def get_ai_service(
