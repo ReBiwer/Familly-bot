@@ -12,7 +12,6 @@ from fastapi import FastAPI
 from src.api import ai_router, auth_router, health_router, users_router
 from src.di import init_di_container
 from src.monitoring import setup_monitoring
-from src.wsgi import Application, get_app_options
 
 
 @asynccontextmanager
@@ -63,18 +62,17 @@ app = create_web_app()
 if __name__ == "__main__":
     from src.common import setup_logging
     from src.settings import app_settings
+    from src.wsgi import run_server
 
     setup_logging(app_settings.LOG_LEVEl)
 
-    options = get_app_options(
+    # run_server автоматически выбирает сервер:
+    # Windows → uvicorn (разработка), Linux → gunicorn (продакшен)
+    run_server(
+        app=app,
         host=app_settings.HOST,
         port=app_settings.PORT,
-        timeout=900,
         workers=4,
+        timeout=900,
+        log_level=app_settings.LOG_LEVEl.lower(),
     )
-
-    gunicorn_app = Application(
-        app=app,
-        options=options,
-    )
-    gunicorn_app.run()
