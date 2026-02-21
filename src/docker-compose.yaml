@@ -47,9 +47,7 @@ services:
     ports:
       - '11434:11434'
     restart: unless-stopped
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
+    entrypoint: ["/entrypoint.sh"]
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s
@@ -58,8 +56,7 @@ services:
       start_period: 90s
     volumes:
       - ollama_data:/root/.ollama
-      - ./docker/ollama/entrypoint.sh:/entrypoint.sh
-    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+      - ./docker/ollama/entrypoint.sh:/entrypoint.sh:ro
     networks:
       - backend
 
