@@ -151,7 +151,7 @@ class AppSettings(BaseSettings):
     PROMPT: PromptSettings = PromptSettings()
 
     model_config = SettingsConfigDict(
-        env_file=f"/{BASE_DIR}/.env",
+        env_file=BASE_DIR / ".env",
         extra="ignore",
         env_nested_delimiter="__",  # Ключевой параметр для вложенных моделей!
     )
