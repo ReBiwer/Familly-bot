@@ -112,3 +112,7 @@ known-first-party = ["src"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pylint."MESSAGES CONTROL"]
+# C0114: missing-module-docstring
+disable = ["C0114"]
