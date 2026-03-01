@@ -1,11 +1,18 @@
+"""
+Модуль с обшими настройками проекта. Пока тут только настройка логирования
+"""
+
 import logging
 import logging.config
 from pathlib import Path
 
-PATH_LOGS = f"{Path(__file__).resolve().parent}/logs"
+PATH_LOGS = Path(__file__).resolve().parent / "logs"
 
 
-def setup_logging(root_log_level: str | int = logging.INFO, log_dir: str = PATH_LOGS):
+def setup_logging(root_log_level: str | int = logging.INFO, log_dir: Path = PATH_LOGS):
+    """
+    Инициализация настроек логгеров и форматирования
+    """
     Path(log_dir).mkdir(parents=True, exist_ok=True)
 
     config = {
@@ -30,14 +37,14 @@ def setup_logging(root_log_level: str | int = logging.INFO, log_dir: str = PATH_
             },
             "general_file": {
                 "class": "logging.handlers.RotatingFileHandler",
-                "filename": f"{log_dir}/app.log",
+                "filename": log_dir / "app.log",
                 "maxBytes": 10485760,  # 10MB
                 "backupCount": 5,
                 "formatter": "default",
             },
             "error_file": {
                 "class": "logging.handlers.RotatingFileHandler",
-                "filename": f"{log_dir}/errors.log",
+                "filename": log_dir / "errors.log",
                 "maxBytes": 10485760,
                 "backupCount": 5,
                 "level": "ERROR",
@@ -45,12 +52,32 @@ def setup_logging(root_log_level: str | int = logging.INFO, log_dir: str = PATH_
             },
         },
         "loggers": {
+            "root": {
+                "level": root_log_level,
+                "handlers": ["console_stdout", "general_file", "error_file"],
+            },
+            "asyncio": {"level": "WARNING"},
             "urllib3": {"level": "WARNING"},
             "httpx": {"level": "WARNING"},
-        },
-        "root": {
-            "level": root_log_level,
-            "handlers": ["console_stdout", "general_file", "error_file"],
+            "httpcore": {"level": "WARNING"},
+            "langgraph": {"level": "WARNING"},
+            
+            # Перехватываем логи Uvicorn (сервера FastAPI)
+            "uvicorn": {
+                "handlers": ["console_stdout", "general_file", "error_file"],
+                "level": "INFO",
+                "propagate": False,
+            },
+            "uvicorn.error": {
+                "handlers": [],
+                "level": "INFO",
+                "propagate": True,
+            },
+            "uvicorn.access": {
+                "handlers": [],
+                "level": "INFO",
+                "propagate": True,
+            },
         },
     }
 
