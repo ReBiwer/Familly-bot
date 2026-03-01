@@ -70,9 +70,7 @@ def create_gunicorn_app(app: FastAPI, options: dict | None = None):
         @property
         def config_options(self) -> dict:
             return {
-                k: v
-                for k, v in self.options.items()
-                if k in self.cfg.settings and v is not None
+                k: v for k, v in self.options.items() if k in self.cfg.settings and v is not None
             }
 
         def load_config(self):
@@ -112,12 +110,12 @@ def run_server(
         # Это однопроцессный режим — идеально для локальной разработки и отладки.
         import uvicorn
 
-        uvicorn.run(app, host=host, port=port, log_level=log_level)
+        # log_config=None отключает встроенную настройку логов Uvicorn,
+        # чтобы он использовал ту, которую мы задали в setup_logging()
+        uvicorn.run(app, host=host, port=port, log_level=log_level, log_config=None)
     else:
         # Linux/macOS: Gunicorn с пулом Uvicorn-воркеров.
         # Каждый воркер — отдельный процесс, что даёт настоящую параллельность.
-        options = get_app_options(
-            host=host, port=port, workers=workers, timeout=timeout
-        )
+        options = get_app_options(host=host, port=port, workers=workers, timeout=timeout)
         gunicorn_app = create_gunicorn_app(app=app, options=options)
         gunicorn_app.run()
