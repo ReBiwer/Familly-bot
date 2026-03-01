@@ -7,28 +7,19 @@ from langchain_core.runnables import RunnableConfig
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from pydantic import BaseModel, Field
 
+from src.middlewares.memory import trim_messages_middleware
 from src.services.prompts import PromptService
 from src.settings import app_settings
 
 logger = logging.getLogger(__name__)
 
 
-class ChatResponse(BaseModel):
-    """
-    Модель для форматированного ответа агента.
-
-    Эта модель определяет структуру ответа, которую LLM должен возвращать.
-    Использование Pydantic гарантирует типобезопасность и валидацию данных.
-    """
-
-    response: str = Field(
-        description="Ответ AI на запрос пользователя",
-    )
-
-
 class AIService:
+    """
+    Сервис для оркерстрации агентом(ми)
+    """
+
     DEFAULT_SYSTEM_PROMPT_NAME = "system_default"
 
     def __init__(
@@ -45,18 +36,13 @@ class AIService:
             prompt_service: Сервис для получения промптов.
                            Промпты загружаются из YAML файла и фильтруются по настройкам.
         """
-        logger.debug(
-            "Инициализация LLM модели: %s\nBase URL модели: %s",
-            app_settings.LLM.OPENAI_MODEL,
-            app_settings.LLM.BASE_URL,
-        )
 
-        self._agent = create_agent(
+        self._base_agent = create_agent(
             model=self._get_chat_llm(),
             system_prompt=prompt_service.get_prompt(self.DEFAULT_SYSTEM_PROMPT_NAME).template,
             checkpointer=checkpointer,
             tools=[],
-            response_format=ChatResponse,
+            middleware=[trim_messages_middleware],
         )
 
         logger.debug("The workflow is built")
@@ -64,10 +50,12 @@ class AIService:
     @staticmethod
     def _get_chat_llm() -> BaseChatModel:
         if app_settings.LLM.OLLAMA_MODEL:
+            logger.debug("Used Ollama model: %s", app_settings.LLM.OLLAMA_MODEL)
             return ChatOllama(
                 model=app_settings.LLM.OLLAMA_MODEL,
                 temperature=app_settings.LLM.TEMPERATURE,
             )
+        logger.debug("Used OpenAI model: %s", app_settings.LLM.OPENAI_MODEL)
         return ChatOpenAI(
             model=app_settings.LLM.OPENAI_MODEL,
             api_key=app_settings.LLM.API_KEY,
@@ -106,8 +94,9 @@ class AIService:
         logger.info("Обрабатываем сообщение от user_id=%s", user_id)
 
         human_message = HumanMessage(content=message)
-        result = await self._agent.ainvoke({"messages": [human_message]}, config=config)
+        result = await self._base_agent.ainvoke({"messages": [human_message]}, config=config)
 
-        chat_response: ChatResponse = result["structured_response"]
+        logger.debug("Length messages: %s", len(result["messages"]))
+        chat_response = result["messages"][-1].content
 
-        return chat_response.messages
+        return chat_response
