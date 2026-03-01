@@ -17,11 +17,9 @@ def setup_logging(root_log_level: str | int = logging.INFO, log_dir: Path = PATH
 
     config = {
         "version": 1,
-        "disable_existing_loggers": False,
+        "disable_existing_loggers": True,
         "formatters": {
-            "default": {
-                "format": "%(asctime)s [%(levelname)-8s] %(name)40s:%(lineno)-3d - %(message)s"
-            }
+            "default": {"format": "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d - %(message)s"}
         },
         "handlers": {
             "console": {
@@ -52,31 +50,14 @@ def setup_logging(root_log_level: str | int = logging.INFO, log_dir: Path = PATH
             },
         },
         "loggers": {
-            "root": {
-                "level": root_log_level,
-                "handlers": ["console_stdout", "general_file", "error_file"],
-            },
-            "asyncio": {"level": "WARNING"},
-            "urllib3": {"level": "WARNING"},
-            "httpx": {"level": "WARNING"},
-            "httpcore": {"level": "WARNING"},
-            "langgraph": {"level": "WARNING"},
-            
-            # Перехватываем логи Uvicorn (сервера FastAPI)
             "uvicorn": {
                 "handlers": ["console_stdout", "general_file", "error_file"],
                 "level": "INFO",
                 "propagate": False,
             },
-            "uvicorn.error": {
-                "handlers": [],
-                "level": "INFO",
-                "propagate": True,
-            },
-            "uvicorn.access": {
-                "handlers": [],
-                "level": "INFO",
-                "propagate": True,
+            "src": {
+                "level": root_log_level,
+                "handlers": ["console_stdout", "general_file", "error_file"],
             },
         },
     }
