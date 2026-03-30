@@ -10,9 +10,9 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, HTTPException, status
 
+from src.di import CurrentUserTelegramId
 from src.schemas import ChatRequest, ChatResponse
 from src.services.ai import AIService
-from src.di import CurrentUserTelegramId
 
 router = APIRouter(
     prefix="/ai",

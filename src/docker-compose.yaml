@@ -39,7 +39,7 @@ services:
       - backend
 
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.17.5
     container_name: ollama_container
     env_file:
       - .env
