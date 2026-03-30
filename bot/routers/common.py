@@ -2,8 +2,9 @@ import logging
 
 import httpx
 from aiogram import Router
-from aiogram.filters.command import Command, CommandStart, Message
+from aiogram.filters.command import Command, CommandStart
 from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
 from aiogram_dialog import DialogManager
 from dishka.integrations.aiogram import FromDishka
 
